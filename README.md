@@ -1,6 +1,6 @@
 # InstructionalSimulations
-Teaching and other instructional materials 
+Adaptive interactive teaching materials.   
 
 CC BY-NC-SA
 
-Copyright Ashok Palaniappan.
+Copyright Ashok Palaniappan
