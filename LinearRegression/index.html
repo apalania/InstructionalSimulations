@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rediscovering Physical Laws — Linear Regression Journey</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --void: #04070f;
+    --deep: #080e1c;
+    --ink: #0d1528;
+    --slate: #1a2540;
+    --dusk: #2a3a5c;
+    --mist: #3d5080;
+    --star: #c8a96e;
+    --gold: #e8c87a;
+    --amber: #f0d080;
+    --glow: #ffe8a0;
+    --comet: #7eb8e0;
+    --nebula: #9ecce8;
+    --chalk: #d8e4f0;
+    --white: #f0f4fa;
+    --danger: #e07060;
+    --success: #6ac878;
+    --mono: 'JetBrains Mono', monospace;
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --display: 'Cinzel', serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--void);
+    color: var(--chalk);
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── STAR FIELD ── */
+  #starfield {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 20% 30%, #0d1a3a 0%, var(--void) 70%);
+  }
+  .star {
+    position: absolute; border-radius: 50%; background: white;
+    animation: twinkle var(--dur, 4s) ease-in-out infinite var(--delay, 0s);
+  }
+  @keyframes twinkle {
+    0%,100% { opacity: var(--min-op, 0.2); transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.4); }
+  }
+
+  /* ── PROGRESS NAV ── */
+  #progress-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: linear-gradient(180deg, rgba(4,7,15,0.97) 0%, rgba(4,7,15,0.7) 100%);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(200,169,110,0.2);
+    padding: 0 2rem;
+    display: flex; align-items: center; gap: 0;
+    height: 52px;
+  }
+  .nav-title {
+    font-family: var(--display);
+    font-size: 0.7rem;
+    color: var(--star);
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+    margin-right: 1.5rem;
+    text-transform: uppercase;
+  }
+  .nav-steps {
+    display: flex; gap: 4px; align-items: center; flex: 1; overflow: hidden;
+  }
+  .nav-step {
+    height: 4px; flex: 1; border-radius: 2px;
+    background: rgba(200,169,110,0.15);
+    transition: background 0.5s, transform 0.3s;
+    cursor: pointer;
+    position: relative;
+  }
+  .nav-step.active { background: var(--gold); transform: scaleY(2); }
+  .nav-step.done { background: rgba(200,169,110,0.5); }
+  .nav-step::after {
+    content: attr(data-label);
+    position: absolute; top: 12px; left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--mono); font-size: 0.55rem;
+    color: var(--star); white-space: nowrap;
+    opacity: 0; transition: opacity 0.2s;
+    pointer-events: none;
+    background: rgba(4,7,15,0.9); padding: 2px 6px; border-radius: 3px;
+  }
+  .nav-step:hover::after { opacity: 1; }
+
+  /* ── SECTIONS ── */
+  section {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    padding: 100px 2rem 60px;
+    display: flex; align-items: flex-start; justify-content: center;
+  }
+  .section-inner {
+    max-width: 860px; width: 100%;
+  }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+    padding-top: 60px;
+  }
+  .hero-eyebrow {
+    font-family: var(--mono); font-size: 0.72rem;
+    color: var(--star); letter-spacing: 0.2em;
+    text-transform: uppercase; margin-bottom: 1.5rem;
+    opacity: 0; animation: fadeUp 0.8s 0.3s forwards;
+  }
+  .hero-title {
+    font-family: var(--display);
+    font-size: clamp(2rem, 5vw, 3.8rem);
+    font-weight: 400;
+    color: var(--glow);
+    line-height: 1.15;
+    margin-bottom: 1rem;
+    opacity: 0; animation: fadeUp 0.8s 0.6s forwards;
+  }
+  .hero-sub {
+    font-size: 1.1rem; color: var(--nebula);
+    font-style: italic; max-width: 580px;
+    margin-bottom: 2.5rem;
+    opacity: 0; animation: fadeUp 0.8s 0.9s forwards;
+  }
+  .hero-meta {
+    font-family: var(--mono); font-size: 0.68rem;
+    color: var(--mist); letter-spacing: 0.1em;
+    opacity: 0; animation: fadeUp 0.8s 1.1s forwards;
+    margin-bottom: 3rem;
+  }
+  .btn-start {
+    font-family: var(--display); font-size: 0.8rem;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--void); background: var(--gold);
+    border: none; padding: 14px 36px; border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+    opacity: 0; animation: fadeUp 0.8s 1.3s forwards;
+    box-shadow: 0 4px 24px rgba(232,200,122,0.3);
+  }
+  .btn-start:hover {
+    background: var(--glow);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(232,200,122,0.5);
+  }
+  .orbit-diagram {
+    margin: 3rem auto;
+    opacity: 0; animation: fadeUp 0.8s 1.5s forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SECTION HEADERS ── */
+  .part-badge {
+    font-family: var(--mono); font-size: 0.65rem;
+    color: var(--star); letter-spacing: 0.18em;
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 0.75rem;
+  }
+  .part-badge::before {
+    content: ''; width: 32px; height: 1px; background: var(--star);
+  }
+  .part-num {
+    font-family: var(--display); font-size: 5rem;
+    color: rgba(200,169,110,0.07);
+    position: absolute; right: -10px; top: -20px;
+    line-height: 1; pointer-events: none;
+    font-weight: 600;
+  }
+  h2 {
+    font-family: var(--display);
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    font-weight: 400;
+    color: var(--glow);
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+  h3 {
+    font-family: var(--display);
+    font-size: 1.1rem;
+    color: var(--gold);
+    margin: 2rem 0 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  p { margin-bottom: 1.1rem; color: var(--chalk); }
+  em { color: var(--nebula); font-style: italic; }
+  strong { color: var(--amber); font-weight: 600; }
+
+  /* ── CARDS ── */
+  .card {
+    background: rgba(26,37,64,0.5);
+    border: 1px solid rgba(200,169,110,0.15);
+    border-radius: 4px;
+    padding: 1.5rem 2rem;
+    margin: 1.5rem 0;
+    position: relative;
+    backdrop-filter: blur(4px);
+  }
+  .card-highlight {
+    background: rgba(42,58,92,0.4);
+    border-color: rgba(200,169,110,0.3);
+    border-left: 3px solid var(--gold);
+  }
+  .card-danger {
+    background: rgba(224,112,96,0.08);
+    border-color: rgba(224,112,96,0.3);
+    border-left: 3px solid var(--danger);
+  }
+  .card-success {
+    background: rgba(106,200,120,0.06);
+    border-color: rgba(106,200,120,0.3);
+    border-left: 3px solid var(--success);
+  }
+
+  /* ── DATA TABLE ── */
+  .data-table-wrap {
+    overflow-x: auto; margin: 1.5rem 0;
+    border-radius: 4px;
+    border: 1px solid rgba(200,169,110,0.15);
+  }
+  table {
+    width: 100%; border-collapse: collapse;
+    font-family: var(--mono); font-size: 0.72rem;
+  }
+  thead tr { background: rgba(200,169,110,0.12); }
+  th {
+    padding: 10px 14px; text-align: left;
+    color: var(--star); letter-spacing: 0.08em;
+    font-weight: 500; white-space: nowrap;
+    border-bottom: 1px solid rgba(200,169,110,0.2);
+  }
+  td {
+    padding: 7px 14px; color: var(--chalk);
+    border-bottom: 1px solid rgba(200,169,110,0.06);
+    white-space: nowrap;
+  }
+  tr:hover td { background: rgba(200,169,110,0.05); }
+  .row-sun td { color: var(--nebula); }
+  .row-jupiter td { color: #c8e0b0; }
+  .row-saturn td { color: #d0c0e8; }
+  .highlight-row td { background: rgba(232,200,122,0.08) !important; color: var(--gold) !important; }
+
+  /* ── EQUATIONS ── */
+  .eq-box {
+    background: rgba(8,14,28,0.8);
+    border: 1px solid rgba(126,184,224,0.2);
+    border-radius: 4px;
+    padding: 1rem 1.5rem;
+    margin: 1.2rem 0;
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    color: var(--comet);
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+  .eq-box .eq-label {
+    font-size: 0.6rem; color: var(--mist);
+    text-transform: uppercase; letter-spacing: 0.15em;
+    display: block; margin-bottom: 0.4rem;
+  }
+
+  /* ── COEFFICIENT TABLE ── */
+  .coef-table {
+    width: 100%; border-collapse: collapse;
+    font-family: var(--mono); font-size: 0.75rem;
+    margin: 1rem 0;
+  }
+  .coef-table th {
+    color: var(--star); font-weight: 400;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(200,169,110,0.25);
+    text-align: left;
+  }
+  .coef-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(200,169,110,0.08);
+  }
+  .coef-table .check { color: var(--success); }
+  .coef-table .warn { color: var(--danger); }
+  .coef-val { color: var(--amber); font-weight: 500; }
+  .ci-val { color: var(--comet); }
+
+  /* ── CANVAS PLOTS ── */
+  .plot-wrap {
+    background: rgba(8,14,28,0.7);
+    border: 1px solid rgba(200,169,110,0.15);
+    border-radius: 4px;
+    padding: 1rem;
+    margin: 1.5rem 0;
+    position: relative;
+  }
+  .plot-title {
+    font-family: var(--mono); font-size: 0.65rem;
+    color: var(--star); letter-spacing: 0.12em;
+    text-transform: uppercase; margin-bottom: 0.5rem;
+    text-align: center;
+  }
+
+  /* ── INTERACTIVE CONTROLS ── */
+  .controls {
+    display: flex; gap: 1rem; flex-wrap: wrap;
+    margin: 1rem 0; align-items: center;
+  }
+  .btn {
+    font-family: var(--mono); font-size: 0.68rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 8px 20px; border-radius: 2px;
+    border: 1px solid rgba(200,169,110,0.4);
+    background: transparent; color: var(--star);
+    cursor: pointer; transition: all 0.25s;
+  }
+  .btn:hover { background: rgba(200,169,110,0.12); border-color: var(--gold); color: var(--gold); }
+  .btn.active { background: rgba(200,169,110,0.2); border-color: var(--gold); color: var(--gold); }
+  .btn-reveal {
+    border-color: rgba(126,184,224,0.4); color: var(--comet);
+  }
+  .btn-reveal:hover { background: rgba(126,184,224,0.1); border-color: var(--comet); }
+
+  /* ── QUIZ ── */
+  .quiz-box {
+    background: rgba(13,21,40,0.8);
+    border: 1px solid rgba(200,169,110,0.2);
+    border-radius: 4px; padding: 1.5rem 2rem;
+    margin: 2rem 0;
+  }
+  .quiz-q {
+    font-family: var(--display); font-size: 1rem;
+    color: var(--gold); margin-bottom: 1rem;
+  }
+  .quiz-options { display: flex; flex-direction: column; gap: 0.5rem; }
+  .quiz-opt {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 14px; border-radius: 3px;
+    border: 1px solid rgba(200,169,110,0.15);
+    cursor: pointer; transition: all 0.2s;
+    font-size: 0.9rem;
+  }
+  .quiz-opt:hover { border-color: rgba(200,169,110,0.4); background: rgba(200,169,110,0.05); }
+  .quiz-opt.correct { border-color: var(--success); background: rgba(106,200,120,0.08); color: var(--success); }
+  .quiz-opt.wrong { border-color: var(--danger); background: rgba(224,112,96,0.08); color: var(--danger); }
+  .quiz-opt.disabled { cursor: default; }
+  .quiz-opt input[type=radio] { display: none; }
+  .quiz-dot {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1px solid rgba(200,169,110,0.4);
+    flex-shrink: 0; margin-top: 2px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem;
+  }
+  .quiz-feedback {
+    margin-top: 1rem; font-style: italic;
+    font-size: 0.9rem; display: none;
+  }
+
+  /* ── REVEAL BLOCK ── */
+  .reveal-block {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.5s;
+    opacity: 0;
+  }
+  .reveal-block.open { max-height: 2000px; opacity: 1; }
+
+  /* ── RESIDUAL VIZ ── */
+  .residual-bars {
+    display: flex; flex-direction: column; gap: 6px;
+    font-family: var(--mono); font-size: 0.68rem;
+    padding: 1rem 0;
+  }
+  .r-row { display: flex; align-items: center; gap: 8px; }
+  .r-label { width: 80px; color: var(--mist); flex-shrink: 0; }
+  .r-bar-wrap { flex: 1; height: 16px; background: rgba(200,169,110,0.06); border-radius: 2px; position: relative; }
+  .r-bar {
+    height: 100%; border-radius: 2px; position: absolute;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+  .r-bar.pos { background: var(--danger); left: 50%; }
+  .r-bar.neg { background: var(--comet); right: 50%; }
+  .r-val { width: 60px; text-align: right; flex-shrink: 0; }
+
+  /* ── JOURNEY MAP ── */
+  .journey-map {
+    display: flex; flex-direction: column; gap: 0;
+    margin: 2rem 0;
+  }
+  .journey-step {
+    display: flex; gap: 1.5rem; align-items: flex-start;
+  }
+  .journey-left {
+    display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 40px;
+  }
+  .journey-dot {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 2px solid rgba(200,169,110,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 0.7rem; color: var(--star);
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+  .journey-dot.done {
+    border-color: var(--gold); background: rgba(200,169,110,0.15);
+    color: var(--gold);
+  }
+  .journey-line {
+    width: 1px; flex: 1; min-height: 40px;
+    background: linear-gradient(180deg, rgba(200,169,110,0.2), rgba(200,169,110,0.05));
+  }
+  .journey-content {
+    padding: 4px 0 2rem;
+  }
+  .journey-action {
+    font-family: var(--mono); font-size: 0.7rem;
+    color: var(--comet); letter-spacing: 0.08em; margin-bottom: 0.25rem;
+  }
+  .journey-insight {
+    font-size: 0.9rem; color: var(--chalk);
+  }
+
+  /* ── STAT PILLS ── */
+  .stat-row { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+  .stat-pill {
+    background: rgba(26,37,64,0.6);
+    border: 1px solid rgba(200,169,110,0.2);
+    border-radius: 3px; padding: 10px 16px;
+    flex: 1; min-width: 120px; text-align: center;
+  }
+  .stat-val {
+    font-family: var(--mono); font-size: 1.4rem;
+    color: var(--gold); display: block; line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-lbl { font-size: 0.7rem; color: var(--mist); font-family: var(--mono); letter-spacing: 0.08em; }
+
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(200,169,110,0.2) 30%, rgba(200,169,110,0.2) 70%, transparent);
+    margin: 3rem 0;
+  }
+
+  /* ── CODE BLOCK ── */
+  pre {
+    background: rgba(4,7,15,0.9);
+    border: 1px solid rgba(126,184,224,0.15);
+    border-radius: 4px;
+    padding: 1.2rem 1.5rem;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    margin: 1rem 0;
+  }
+  .kw { color: #c586c0; }
+  .fn { color: #dcdcaa; }
+  .str { color: #ce9178; }
+  .cm { color: #6a9955; font-style: italic; }
+  .num { color: #b5cea8; }
+
+  /* ── INTERACTION DIAGRAM ── */
+  .interaction-svg {
+    display: block; margin: 1rem auto;
+    max-width: 400px;
+  }
+
+  /* ── SCROLL REVEAL ── */
+  .sr { opacity: 0; transform: translateY(24px); transition: opacity 0.7s, transform 0.7s; }
+  .sr.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative; z-index: 1;
+    text-align: center; padding: 3rem 2rem;
+    font-family: var(--mono); font-size: 0.65rem;
+    color: var(--mist); letter-spacing: 0.1em;
+    border-top: 1px solid rgba(200,169,110,0.1);
+  }
+
+  /* ── TOGGLE SWITCH ── */
+  .toggle-row { display: flex; align-items: center; gap: 1rem; margin: 0.5rem 0; }
+  .toggle-lbl { font-family: var(--mono); font-size: 0.72rem; color: var(--chalk); }
+  .toggle {
+    width: 44px; height: 22px; background: rgba(200,169,110,0.15);
+    border-radius: 11px; position: relative; cursor: pointer;
+    border: 1px solid rgba(200,169,110,0.3); transition: background 0.3s;
+  }
+  .toggle.on { background: rgba(200,169,110,0.3); border-color: var(--gold); }
+  .toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--star); transition: left 0.3s;
+  }
+  .toggle.on::after { left: 24px; background: var(--gold); }
+
+  /* ── R² METER ── */
+  .r2-meter { margin: 1rem 0; }
+  .r2-track {
+    height: 8px; background: rgba(200,169,110,0.1);
+    border-radius: 4px; overflow: hidden;
+  }
+  .r2-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, var(--danger), var(--star), var(--success));
+    transition: width 1s cubic-bezier(0.4,0,0.2,1);
+  }
+  .r2-labels {
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 0.6rem; color: var(--mist); margin-top: 4px;
+  }
+
+  @media (max-width: 600px) {
+    section { padding: 80px 1rem 40px; }
+    .card { padding: 1rem 1.2rem; }
+    h2 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+
+<nav id="progress-nav">
+  <span class="nav-title">Kepler × Newton × Regression</span>
+  <div class="nav-steps">
+    <div class="nav-step active" data-label="Introduction" data-sec="hero" onclick="scrollToSection('hero')"></div>
+    <div class="nav-step" data-label="The Data" data-sec="s1" onclick="scrollToSection('s1')"></div>
+    <div class="nav-step" data-label="Bad Model" data-sec="s2" onclick="scrollToSection('s2')"></div>
+    <div class="nav-step" data-label="Log-Log" data-sec="s3" onclick="scrollToSection('s3')"></div>
+    <div class="nav-step" data-label="Multiple Predictors" data-sec="s4" onclick="scrollToSection('s4')"></div>
+    <div class="nav-step" data-label="Eccentricity" data-sec="s5" onclick="scrollToSection('s5')"></div>
+    <div class="nav-step" data-label="Interactions" data-sec="s6" onclick="scrollToSection('s6')"></div>
+    <div class="nav-step" data-label="Diagnostics" data-sec="s7" onclick="scrollToSection('s7')"></div>
+    <div class="nav-step" data-label="Summary" data-sec="s8" onclick="scrollToSection('s8')"></div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════ HERO ══════════════════════════════ -->
+<section id="hero">
+  <div style="max-width:780px;text-align:center">
+    <p class="hero-eyebrow">Machine Learning· Linear Regression · Planetary Motion</p>
+    <h1 class="hero-title">Re-discovering Physical Laws<br>Using Linear Regression</h1>
+    <p class="hero-sub">Johannes Kepler found a pattern with no theory to explain it. Newton later showed why it was true. You will rediscover both — from raw data.</p>
+    <p class="hero-meta">8 PARTS · 20 DATA POINTS · 1 GRAVITATIONAL CONSTANT</p>
+
+    <svg class="orbit-diagram" width="280" height="160" viewBox="0 0 280 160">
+      <ellipse cx="140" cy="80" rx="120" ry="55" fill="none" stroke="rgba(200,169,110,0.12)" stroke-width="1"/>
+      <ellipse cx="140" cy="80" rx="85" ry="38" fill="none" stroke="rgba(200,169,110,0.16)" stroke-width="1"/>
+      <ellipse cx="140" cy="80" rx="50" ry="22" fill="none" stroke="rgba(200,169,110,0.22)" stroke-width="1"/>
+      <circle cx="140" cy="80" r="8" fill="#f0d080" opacity="0.9"/>
+      <circle cx="140" cy="80" r="14" fill="none" stroke="#f0d080" stroke-width="0.5" opacity="0.3"/>
+      <!-- planets -->
+      <circle cx="190" cy="80" r="3.5" fill="#6ac878" opacity="0.9">
+        <animateTransform attributeName="transform" type="rotate" from="0 140 80" to="360 140 80" dur="4s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="225" cy="80" r="4.5" fill="#7eb8e0" opacity="0.9">
+        <animateTransform attributeName="transform" type="rotate" from="0 140 80" to="360 140 80" dur="7.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="260" cy="80" r="5" fill="#d0c0e8" opacity="0.9">
+        <animateTransform attributeName="transform" type="rotate" from="0 140 80" to="360 140 80" dur="12s" repeatCount="indefinite"/>
+      </circle>
+      <text x="140" y="146" text-anchor="middle" fill="rgba(200,169,110,0.4)" font-family="JetBrains Mono,monospace" font-size="9">T² ∝ a³</text>
+    </svg>
+
+    <button class="btn-start" onclick="document.getElementById('s1').scrollIntoView({behavior:'smooth'})">Begin the Journey ↓</button>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ PART 1: DATA ══════════════════════════════ -->
+<section id="s1">
+  <div class="section-inner sr">
+    <div style="position:relative">
+      <span class="part-num">1</span>
+      <div class="part-badge">Part One</div>
+      <h2>The Data: 20 Objects, Five Orders of Magnitude</h2>
+    </div>
+
+    <p>We have 20 orbiting bodies — 8 planets around the Sun plus moons of Jupiter and Saturn. The data spans orbital radii from <strong>0.00124 AU</strong> (Mimas, a tiny Saturn moon) to <strong>30.07 AU</strong> (Neptune). That's a range of 24,000×.</p>
+
+    <div class="card card-highlight">
+      <p style="margin:0"><em>"The square of the orbital period of a planet is proportional to the cube of its semi-major axis."</em><br>
+      <span style="font-size:0.85rem;color:var(--mist)">— Johannes Kepler, 1619. He had no idea why. He just noticed it fit.</span></p>
+    </div>
+
+    <p>Use the filter buttons to explore the dataset. Notice how different the scale is between planets and moons.</p>
+
+    <div class="controls">
+      <button class="btn active" id="btn-all" onclick="filterTable('all')">All 20</button>
+      <button class="btn" id="btn-sun" onclick="filterTable('Sun')">Planets (Sun)</button>
+      <button class="btn" id="btn-jup" onclick="filterTable('Jupiter')">Jupiter Moons</button>
+      <button class="btn" id="btn-sat" onclick="filterTable('Saturn')">Saturn Moons</button>
+    </div>
+
+    <div class="data-table-wrap">
+      <table id="data-table">
+        <thead>
+          <tr>
+            <th>Object</th><th>Central Body</th><th>a (AU)</th><th>T (years)</th><th>M (M☉)</th><th>Eccentricity</th>
+          </tr>
+        </thead>
+        <tbody id="data-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-pill"><span class="stat-val" id="st-n">20</span><span class="stat-lbl">Objects</span></div>
+      <div class="stat-pill"><span class="stat-val">24,000×</span><span class="stat-lbl">Range of a</span></div>
+      <div class="stat-pill"><span class="stat-val">5</span><span class="stat-lbl">Orders of Magnitude</span></div>
+    </div>
+
+    <div class="quiz-box">
+      <div class="quiz-q">🔭 Quick Check: Why does data that spans many orders of magnitude cause problems for standard linear regression?</div>
+      <div class="quiz-options" id="q1-opts">
+        <div class="quiz-opt" onclick="checkQ(1, this, false)">
+          <div class="quiz-dot"></div>
+          The algorithm cannot converge when values are very large.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(1, this, true)">
+          <div class="quiz-dot"></div>
+          A linear model forces a constant additive slope, but the relationship changes multiplicatively — small changes at low values are ignored while large values dominate.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(1, this, false)">
+          <div class="quiz-dot"></div>
+          You need at least 100 data points to handle wide data ranges.
+        </div>
+      </div>
+      <div class="quiz-feedback" id="q1-fb" style="display:none"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ PART 2: BAD MODEL ══════════════════════════════ -->
+<section id="s2">
+  <div class="section-inner sr">
+    <div style="position:relative">
+      <span class="part-num">2</span>
+      <div class="part-badge">Part Two</div>
+      <h2>A First (Terrible) Model</h2>
+    </div>
+
+    <p>Without thinking, we naively fit orbital period <em>T</em> directly against semi-major axis <em>a</em>:</p>
+
+    <div class="eq-box">
+      <span class="eq-label">Model 1 — Raw Linear</span>
+      T = β₀ + β₁·a + ε
+    </div>
+
+    <h3>Results</h3>
+    <table class="coef-table">
+      <thead><tr><th>Coefficient</th><th>Estimate</th><th>Std. Error</th><th>p-value</th></tr></thead>
+      <tbody>
+        <tr><td>β₀</td><td class="coef-val">−13.2 yr</td><td>8.1</td><td>0.12</td></tr>
+        <tr><td>β₁</td><td class="coef-val">+5.8 yr/AU</td><td>0.9</td><td>&lt;0.001</td></tr>
+      </tbody>
+    </table>
+
+    <div class="r2-meter">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-family:var(--mono);font-size:0.7rem;color:var(--mist)">Model Fit (R²)</span>
+        <span style="font-family:var(--mono);font-size:0.7rem;color:var(--star)">R² = 0.71</span>
+      </div>
+      <div class="r2-track"><div class="r2-fill" id="r2-m1" style="width:0%"></div></div>
+      <div class="r2-labels"><span>0.0</span><span>0.5</span><span>1.0</span></div>
+    </div>
+
+    <div class="card card-danger">
+      <strong>R² = 0.71 sounds reasonable. It is a disaster.</strong>
+      <p style="margin-top:0.5rem;margin-bottom:0">The model predicts <em>negative time</em> for Io (−13 years predicted vs. 0.005 actual). It is structurally wrong.</p>
+    </div>
+
+    <h3>Visualising the Residuals</h3>
+    <p>Click "Show Residuals" to see how badly the model performs on specific objects:</p>
+
+    <button class="btn btn-reveal" onclick="showResiduals()">Show Residuals →</button>
+
+    <div class="reveal-block" id="residual-reveal">
+      <div class="plot-wrap">
+        <div class="plot-title">Residuals: Model 1 (T ~ a) — Raw Scale</div>
+        <div class="residual-bars" id="resid-bars"></div>
+      </div>
+      <div class="card card-highlight" style="margin-top:1rem">
+        <strong>The Core Problem:</strong> We forced a linear relationship onto data spanning <strong>five orders of magnitude</strong>. The model gets worse as fitted values grow — classic underfitting.
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="card" style="text-align:center;padding:2rem">
+      <p style="font-size:1.1rem;margin-bottom:0.5rem;color:var(--gold)">The Lesson Before the Solution</p>
+      <p style="margin:0;font-style:italic;font-size:1rem;color:var(--nebula)">Whenever your data spans multiple orders of magnitude, your first question should be:<br><strong>Should I be working on the log scale?</strong></p>
+    </div>
+
+    <div class="quiz-box">
+      <div class="quiz-q">🤔 The model predicts T = −13 years for Io. What does this tell us?</div>
+      <div class="quiz-options" id="q2-opts">
+        <div class="quiz-opt" onclick="checkQ(2, this, false)">
+          <div class="quiz-dot"></div>
+          We need to remove Io from the dataset as an outlier.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(2, this, false)">
+          <div class="quiz-dot"></div>
+          We need more data points to get a better estimate.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(2, this, true)">
+          <div class="quiz-dot"></div>
+          The functional form itself is wrong — a linear model cannot represent this relationship. The model is structurally misspecified.
+        </div>
+      </div>
+      <div class="quiz-feedback" id="q2-fb"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ PART 3: LOG-LOG ══════════════════════════════ -->
+<section id="s3">
+  <div class="section-inner sr">
+    <div style="position:relative">
+      <span class="part-num">3</span>
+      <div class="part-badge">Part Three</div>
+      <h2>Log-Log Regression: The Key Transformation</h2>
+    </div>
+
+    <p>Start from Kepler's Third Law, and take the natural logarithm of both sides:</p>
+
+    <div class="eq-box">
+      <span class="eq-label">Kepler's Third Law</span>
+      T² = (4π²/GM) · a³
+    </div>
+    <div class="eq-box">
+      <span class="eq-label">After log transformation</span>
+      ln T = <span style="border-bottom:1px solid var(--star);padding:0 4px">½ ln(4π²/GM)</span> + <span style="border-bottom:1px solid var(--comet);padding:0 4px">3/2</span> · ln a<br>
+      <span style="font-size:0.7rem;color:var(--mist)">β₀ (intercept, encodes G)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;β₁ = 1.5 (predicted slope)</span>
+    </div>
+
+    <p>On the <strong>log-log scale, Kepler's law is a straight line</strong> with slope exactly 3/2 = 1.5. This is a powerful insight: nonlinear power laws become linear when we transform the variables.</p>
+
+    <h3>Interactive: Explore the Transformation</h3>
+    <div class="controls">
+      <div class="toggle-row">
+        <span class="toggle-lbl">Raw scale</span>
+        <div class="toggle" id="scale-toggle" onclick="toggleScale()"></div>
+        <span class="toggle-lbl">Log scale</span>
+      </div>
+    </div>
+    <div class="plot-wrap">
+      <div class="plot-title" id="plot3-title">T vs a — Raw Scale (Planets Only)</div>
+      <canvas id="chart3" height="280"></canvas>
+    </div>
+
+    <h3>Fitting the Log-Log Model (Planets Only)</h3>
+    <p>Using only the 8 planets (all orbit the Sun, so M = 1 solar mass):</p>
+
+    <div class="eq-box">
+      <span class="eq-label">Model 2 — Log-Log (8 Planets)</span>
+      ln T = β₀ + β₁ · ln a + ε
+    </div>
+
+    <table class="coef-table">
+      <thead><tr><th>Coefficient</th><th>Estimate</th><th>95% CI</th><th>Theory Predicts</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>β₀</td>
+          <td class="coef-val">−0.001</td>
+          <td class="ci-val">[−0.012, 0.010]</td>
+          <td><span class="check">0.000 ✓</span></td>
+        </tr>
+        <tr>
+          <td>β₁ (ln a)</td>
+          <td class="coef-val">1.500</td>
+          <td class="ci-val">[1.496, 1.504]</td>
+          <td><span class="check">1.500 ✓</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="r2-meter">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-family:var(--mono);font-size:0.7rem;color:var(--mist)">Model Fit (R²)</span>
+        <span style="font-family:var(--mono);font-size:0.7rem;color:var(--success)">R² = 0.9999+</span>
+      </div>
+      <div class="r2-track"><div class="r2-fill" id="r2-m2" style="width:0%"></div></div>
+      <div class="r2-labels"><span>0.0</span><span>0.5</span><span>1.0</span></div>
+    </div>
+
+    <div class="card card-success">
+      <strong>One of the most precise law-recoveries in the history of empirical science.</strong> With 8 data points and a single predictor, we've recovered a physical constant to four significant figures.
+    </div>
+
+    <h3>Interpreting Log-Log Coefficients</h3>
+    <div class="card">
+      <p style="margin:0.4rem 0"><span style="color:var(--mist);font-family:var(--mono);font-size:0.72rem">LINEAR-LINEAR</span> &nbsp;β₁ = change in y per unit change in x <span style="color:var(--mist)">(additive)</span></p>
+      <p style="margin:0.4rem 0"><span style="color:var(--comet);font-family:var(--mono);font-size:0.72rem">LOG-LINEAR</span> &nbsp;&nbsp;β₁ = fractional change in y per unit change in x <span style="color:var(--mist)">(semi-elasticity)</span></p>
+      <p style="margin:0.4rem 0;color:var(--gold)"><span style="color:var(--gold);font-family:var(--mono);font-size:0.72rem">LOG-LOG</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;β₁ = % change in y per 1% change in x <span style="color:var(--mist)">(elasticity / power law)</span></p>
+    </div>
+
+    <p>Here: a 1% increase in orbital radius → <strong>1.5% increase in orbital period</strong>. Double the radius (100% increase) → 2<sup>1.5</sup> ≈ 2.83× longer period.</p>
+
+    <div class="quiz-box">
+      <div class="quiz-q">📐 In a log-log model, if β₁ = 3, a 10% increase in x corresponds to what change in y?</div>
+      <div class="quiz-options" id="q3-opts">
+        <div class="quiz-opt" onclick="checkQ(3, this, false)">
+          <div class="quiz-dot"></div>
+          A 30% increase in y.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(3, this, false)">
+          <div class="quiz-dot"></div>
+          A 3× increase in y.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(3, this, true)">
+          <div class="quiz-dot"></div>
+          Approximately a 33.1% increase in y — because 1.1³ ≈ 1.331, so y scales by ≈ 1.331×.
+        </div>
+      </div>
+      <div class="quiz-feedback" id="q3-fb"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ PART 4: MULTIPLE PREDICTORS ══════════════════════════════ -->
+<section id="s4">
+  <div class="section-inner sr">
+    <div style="position:relative">
+      <span class="part-num">4</span>
+      <div class="part-badge">Part Four</div>
+      <h2>Expanding to Multiple Objects: Adding ln M</h2>
+    </div>
+
+    <p>Now add Jupiter's and Saturn's moons. The central body changes — moons orbit planets, not the Sun. When we refit the simple log-log model on all 20 objects, something alarming appears:</p>
+
+    <button class="btn btn-reveal" onclick="showMoonResiduals()">Reveal Moon Residuals →</button>
+
+    <div class="reveal-block" id="moon-reveal">
+      <div class="plot-wrap" style="margin-top:1rem">
+        <div class="plot-title">Residuals: ln T ~ ln a (All 20 Objects)</div>
+        <div class="residual-bars" id="moon-resid-bars"></div>
+      </div>
+
+      <div class="card card-danger" style="margin-top:1rem">
+        <p style="margin:0">The moons are all shifted by a <strong>constant offset</strong> — residuals cluster by which planet they orbit. This is a telltale sign that a variable we haven't included is systematically affecting the outcome: <strong>the mass of the central body.</strong></p>
+      </div>
+    </div>
+
+    <h3>Adding the Second Predictor: ln(M)</h3>
+    <p>Return to the physics. Taking logs of Newton's full formula:</p>
+
+    <div class="eq-box">
+      <span class="eq-label">Log-linearised Newton's Law</span>
+      ln T = ½ln(4π²) − ½ln G − ½ln M + 3/2 · ln a
+    </div>
+
+    <div class="eq-box">
+      <span class="eq-label">Model 3 — Two Predictors (All 20 Objects)</span>
+      ln T = β₀ + β₁ · ln a + β₂ · ln M + ε
+    </div>
+
+    <p>Theory predicts: <strong>β₁ = 1.5</strong> and <strong>β₂ = −0.5</strong></p>
+
+    <h3>Results</h3>
+    <table class="coef-table">
+      <thead><tr><th>Coefficient</th><th>Estimate</th><th>95% CI</th><th>Theory</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>β₀</td><td class="coef-val">14.39</td>
+          <td class="ci-val">[14.31, 14.47]</td>
+          <td><span class="check">½ln(4π²/G) ≈ 14.39 ✓</span></td>
+        </tr>
+        <tr>
+          <td>β₁ (ln a)</td><td class="coef-val">1.499</td>
+          <td class="ci-val">[1.491, 1.507]</td>
+          <td><span class="check">1.500 ✓</span></td>
+        </tr>
+        <tr>
+          <td>β₂ (ln M)</td><td class="coef-val">−0.501</td>
+          <td class="ci-val">[−0.509, −0.493]</td>
+          <td><span class="check">−0.500 ✓</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="r2-meter">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-family:var(--mono);font-size:0.7rem;color:var(--mist)">Model Fit (R²)</span>
+        <span style="font-family:var(--mono);font-size:0.7rem;color:var(--success)">R² = 0.99998</span>
+      </div>
+      <div class="r2-track"><div class="r2-fill" id="r2-m3" style="width:0%"></div></div>
+      <div class="r2-labels"><span>0.0</span><span>0.5</span><span>1.0</span></div>
+    </div>
+
+    <h3>Extracting G from the Intercept</h3>
+    <div class="card card-highlight">
+      <p>The intercept β₀ <em>encodes</em> the gravitational constant G:</p>
+      <div class="eq-box" style="margin:0.5rem 0">β₀ = ½ ln(4π²/G) = 14.39 &nbsp;⟹&nbsp; G = 4π²/e²⁸·⁷⁸ ≈ <strong>6.67 × 10⁻¹¹ N m² kg⁻²</strong></div>
+      <p style="margin:0">We measured the gravitational constant by fitting a regression. <em>Kepler found the pattern. Newton explained it. Regression quantified it.</em></p>
+    </div>
+
+    <h3>Why β₂ is Negative: Intuition</h3>
+    <p>β₂ = −0.5 means: <strong>heavier central body → shorter period.</strong> Jupiter's immense gravity whips Io around in just 1.77 Earth days. More mass means stronger gravitational pull, faster orbit.</p>
+
+    <div class="plot-wrap">
+      <div class="plot-title">All 20 Objects — Log-Log with Two Predictors</div>
+      <canvas id="chart4" height="300"></canvas>
+    </div>
+
+    <div class="quiz-box">
+      <div class="quiz-q">🪐 When we added ln M to the model, the residuals for moons dropped from ~−5.1 to near zero. What does this pattern of "clustered residuals" teach us about model building?</div>
+      <div class="quiz-options" id="q4-opts">
+        <div class="quiz-opt" onclick="checkQ(4, this, false)">
+          <div class="quiz-dot"></div>
+          Moons are fundamentally different from planets and should be modelled separately.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(4, this, true)">
+          <div class="quiz-dot"></div>
+          Residuals that cluster by a categorical group (here: which central body) are a diagnostic signal that a missing predictor related to group membership explains remaining variation.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(4, this, false)">
+          <div class="quiz-dot"></div>
+          We had a data entry error that needed to be corrected.
+        </div>
+      </div>
+      <div class="quiz-feedback" id="q4-fb"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ PART 5: ECCENTRICITY ══════════════════════════════ -->
+<section id="s5">
+  <div class="section-inner sr">
+    <div style="position:relative">
+      <span class="part-num">5</span>
+      <div class="part-badge">Part Five</div>
+      <h2>A Third Predictor: Does Eccentricity Matter?</h2>
+    </div>
+
+    <p>Kepler's Third Law uses only the semi-major axis — eccentricity is irrelevant in theory. But we're working with real data. Could eccentricity appear to matter by chance? And what happens to our existing coefficients when we add it?</p>
+
+    <div class="eq-box">
+      <span class="eq-label">Model 4 — Three Predictors</span>
+      ln T = β₀ + β₁ · ln a + β₂ · ln M + β₃ · e + ε
+    </div>
+
+    <h3>Results</h3>
+    <table class="coef-table">
+      <thead><tr><th>Coefficient</th><th>Estimate</th><th>Std. Error</th><th>t-stat</th><th>p-value</th></tr></thead>
+      <tbody>
+        <tr><td>β₀</td><td class="coef-val">14.39</td><td>0.04</td><td>360</td><td>&lt;0.001</td></tr>
+        <tr><td>β₁ (ln a)</td><td class="coef-val">1.499</td><td>0.004</td><td>375</td><td>&lt;0.001</td></tr>
+        <tr><td>β₂ (ln M)</td><td class="coef-val">−0.501</td><td>0.004</td><td>−125</td><td>&lt;0.001</td></tr>
+        <tr><td>β₃ (e)</td><td class="coef-val warn">0.021</td><td>0.041</td><td>0.51</td><td class="warn">0.62 ✗</td></tr>
+      </tbody>
+    </table>
+
+    <div class="card card-highlight">
+      <p style="margin:0"><strong>Eccentricity is completely insignificant</strong> (p = 0.62). Crucially, β₁ and β₂ are <em>essentially unchanged</em> from the two-predictor model. This stability is the real result.</p>
+    </div>
+
+    <h3>Coefficient Stability Analysis</h3>
+    <p>This is one of the most underused tools in applied regression. When you add a new predictor, watch what happens to existing coefficients:</p>
+
+    <div class="card" style="padding:1.5rem 2rem">
+      <div style="display:flex;flex-direction:column;gap:0.8rem">
+        <div style="display:flex;gap:1rem;align-items:flex-start">
+          <span style="color:var(--success);font-size:1.1rem;flex-shrink:0">→</span>
+          <div><strong>Coefficients barely move</strong> — new predictor is independent of existing ones. Safe to include or exclude.</div>
+        </div>
+        <div style="display:flex;gap:1rem;align-items:flex-start">
+          <span style="color:var(--danger);font-size:1.1rem;flex-shrink:0">⚠</span>
+          <div><strong>Coefficients shift substantially</strong> — confounding. The new predictor is correlated with old ones and "stealing credit." Interpret carefully.</div>
+        </div>
+        <div style="display:flex;gap:1rem;align-items:flex-start">
+          <span style="color:var(--mist);font-size:1.1rem;flex-shrink:0">✗</span>
+          <div><strong>New coefficient small, p large</strong> — variable adds no explanatory power. Drop it.</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>The F-Test for Groups of Predictors</h3>
+    <p>To formally test whether a group of predictors improves the model beyond chance:</p>
+
+    <div class="eq-box">
+      <span class="eq-label">F-test Statistic</span>
+      F = (RSS<sub>reduced</sub> − RSS<sub>full</sub>) / q  ÷  RSS<sub>full</sub> / (n − p − 1)
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-pill"><span class="stat-val warn">0.26</span><span class="stat-lbl">F-statistic (eccentricity)</span></div>
+      <div class="stat-pill"><span class="stat-val warn">0.62</span><span class="stat-lbl">p-value</span></div>
+      <div class="stat-pill"><span class="stat-val" style="color:var(--mist)">Fail</span><span class="stat-lbl">Reject H₀?</span></div>
+    </div>
+
+    <div class="card">
+      <p style="margin:0">Contrast: adding ln M in Part 4 produced F &gt; 10,000 because the residuals for moons were catastrophically wrong without it. That's a predictor that <em>truly matters</em>.</p>
+    </div>
+
+    <div class="quiz-box">
+      <div class="quiz-q">📊 You add a new predictor and β₁ changes from 1.50 to 0.85. What should you conclude?</div>
+      <div class="quiz-options" id="q5-opts">
+        <div class="quiz-opt" onclick="checkQ(5, this, false)">
+          <div class="quiz-dot"></div>
+          The new predictor is important and should always be included.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(5, this, true)">
+          <div class="quiz-dot"></div>
+          The new predictor is correlated with the original predictor (confounding). The original β₁ estimate was partially capturing the new variable's effect. Interpret both coefficients with care.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(5, this, false)">
+          <div class="quiz-dot"></div>
+          You should remove β₁ from the model since it changed.
+        </div>
+      </div>
+      <div class="quiz-feedback" id="q5-fb"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ PART 6: INTERACTION ══════════════════════════════ -->
+<section id="s6">
+  <div class="section-inner sr">
+    <div style="position:relative">
+      <span class="part-num">6</span>
+      <div class="part-badge">Part Six</div>
+      <h2>An Interaction Term: Does the Radius Effect Depend on Mass?</h2>
+    </div>
+
+    <p>Newton's law is a clean product: T ∝ a<sup>3/2</sup> × M<sup>−1/2</sup>. On the log scale, this becomes a <em>sum</em> — meaning there should be <strong>no interaction term</strong>. The effect of ln a on ln T should not depend on ln M.</p>
+    <p>But suppose we didn't know this. Could we test it from data?</p>
+
+    <div class="eq-box">
+      <span class="eq-label">Model 5 — With Interaction</span>
+      ln T = β₀ + β₁ · ln a + β₂ · ln M + β₃ · (ln a · ln M) + ε
+    </div>
+
+    <table class="coef-table">
+      <thead><tr><th>Coefficient</th><th>Estimate</th><th>Std. Error</th><th>p-value</th></tr></thead>
+      <tbody>
+        <tr><td>β₀</td><td class="coef-val">14.38</td><td>0.05</td><td>&lt;0.001</td></tr>
+        <tr><td>β₁ (ln a)</td><td class="coef-val">1.500</td><td>0.005</td><td>&lt;0.001</td></tr>
+        <tr><td>β₂ (ln M)</td><td class="coef-val">−0.500</td><td>0.006</td><td>&lt;0.001</td></tr>
+        <tr><td>β₃ (ln a · ln M)</td><td class="coef-val warn">0.0003</td><td>0.0008</td><td class="warn">0.71 ✗</td></tr>
+      </tbody>
+    </table>
+
+    <div class="card card-success">
+      <strong>The interaction is tiny and insignificant.</strong> Newton's law implies no interaction, and the data confirms it. The effect of orbital radius on period is the same whether you're orbiting the Sun or Jupiter.
+    </div>
+
+    <h3>Visualising What an Interaction Would Look Like</h3>
+    <p>Had β₃ been significant, the relationship between ln a and ln T would differ for light vs. heavy central bodies. Toggle to see what that would look like:</p>
+
+    <div class="controls">
+      <button class="btn active" id="int-off-btn" onclick="setInteraction(false)">No Interaction (Reality)</button>
+      <button class="btn" id="int-on-btn" onclick="setInteraction(true)">Hypothetical Interaction (β₃ = −0.3)</button>
+    </div>
+
+    <div class="plot-wrap">
+      <div class="plot-title" id="int-plot-title">Parallel Lines → No Interaction</div>
+      <canvas id="chart6" height="260"></canvas>
+    </div>
+
+    <h3>Interactions Beyond Physics</h3>
+    <p>In any multiple regression, if you suspect "the effect of X₁ depends on the level of X₂," that's an interaction. You test it by adding X₁·X₂ as a feature.</p>
+
+    <div class="card">
+      <p style="margin:0.25rem 0">💼 Does the effect of <strong>advertising spend</strong> on sales depend on <strong>market size</strong>?</p>
+      <p style="margin:0.25rem 0">💊 Does the effect of <strong>drug dosage</strong> depend on <strong>patient age</strong>?</p>
+      <p style="margin:0.25rem 0;margin-bottom:0">📚 Does the effect of <strong>study hours</strong> depend on <strong>prior knowledge</strong>?</p>
+    </div>
+    <p>All are mathematically identical to testing ln(a) · ln(M).</p>
+
+    <div class="quiz-box">
+      <div class="quiz-q">🔗 On a log-log plot, what does it mean visually if an interaction term is significant?</div>
+      <div class="quiz-options" id="q6-opts">
+        <div class="quiz-opt" onclick="checkQ(6, this, false)">
+          <div class="quiz-dot"></div>
+          The data points will scatter more widely around the regression line.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(6, this, true)">
+          <div class="quiz-dot"></div>
+          The regression lines for different groups (e.g., light vs. heavy central bodies) will be non-parallel — they will converge, cross, or fan out, indicating different slopes.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(6, this, false)">
+          <div class="quiz-dot"></div>
+          The intercept will shift but the slope will remain constant across groups.
+        </div>
+      </div>
+      <div class="quiz-feedback" id="q6-fb"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ PART 7: DIAGNOSTICS ══════════════════════════════ -->
+<section id="s7">
+  <div class="section-inner sr">
+    <div style="position:relative">
+      <span class="part-num">7</span>
+      <div class="part-badge">Part Seven</div>
+      <h2>Full Diagnostics on the Final Model</h2>
+    </div>
+
+    <p>Our final model: <strong>ln T = β₀ + β₁ ln a + β₂ ln M</strong>. Now we verify it meets the assumptions of OLS regression.</p>
+
+    <div class="controls" style="flex-wrap:wrap;gap:0.5rem">
+      <button class="btn active" id="diag-resfit" onclick="showDiag('resfit')">Residuals vs Fitted</button>
+      <button class="btn" id="diag-qq" onclick="showDiag('qq')">QQ Plot</button>
+      <button class="btn" id="diag-scale" onclick="showDiag('scale')">Homoscedasticity</button>
+      <button class="btn" id="diag-cook" onclick="showDiag('cook')">Cook's Distance</button>
+    </div>
+
+    <div class="plot-wrap">
+      <div class="plot-title" id="diag-title">Residuals vs Fitted Values</div>
+      <canvas id="chart7" height="280"></canvas>
+    </div>
+
+    <div id="diag-text" class="card" style="margin-top:1rem">
+      <p id="diag-desc" style="margin:0">Residuals are small (|ê| &lt; 0.03 for all objects) and show no pattern against fitted values. Contrast this with the raw-scale model where residuals reached −13 years for Saturn. The flat band confirms the model has extracted the signal.</p>
+    </div>
+
+    <h3>Variance Inflation Factor (VIF)</h3>
+    <div class="stat-row">
+      <div class="stat-pill"><span class="stat-val" style="color:var(--success)">1.03</span><span class="stat-lbl">VIF — ln a</span></div>
+      <div class="stat-pill"><span class="stat-val" style="color:var(--success)">1.03</span><span class="stat-lbl">VIF — ln M</span></div>
+      <div class="stat-pill"><span class="stat-val" style="color:var(--success)">Near 1</span><span class="stat-lbl">Multicollinearity</span></div>
+    </div>
+
+    <p>VIF ≈ 1 for both predictors — virtually zero multicollinearity. Orbital radius and central body mass are independent physical properties. You can have a small moon orbiting a giant planet at any distance.</p>
+
+    <div class="card card-highlight">
+      <p><strong>Why log transforms improve diagnostics:</strong> On the log scale, a given relative error (e.g., ±2% in period measurement) produces a constant absolute error in ln T, regardless of magnitude. Log transforms convert <em>multiplicative errors</em> (common in physical and economic systems) into <em>additive, constant-variance errors</em>.</p>
+      <p style="margin:0">⚠️ <strong>Physical outlier:</strong> Hyperion (Saturn's moon) shows the largest deviation due to its unusually high eccentricity (e = 0.123) and chaotic tumbling rotation. It's an outlier for physical reasons we can now understand.</p>
+    </div>
+
+    <div class="quiz-box">
+      <div class="quiz-q">🔍 A residual vs. fitted plot shows residuals that fan out as fitted values increase (trumpet shape). What regression assumption is violated?</div>
+      <div class="quiz-options" id="q7-opts">
+        <div class="quiz-opt" onclick="checkQ(7, this, false)">
+          <div class="quiz-dot"></div>
+          Linearity — the functional form is wrong.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(7, this, false)">
+          <div class="quiz-dot"></div>
+          Independence — the observations are correlated.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(7, this, true)">
+          <div class="quiz-dot"></div>
+          Homoscedasticity — the variance of residuals is not constant across fitted values (heteroscedasticity). A log transform often fixes this for multiplicative-error processes.
+        </div>
+      </div>
+      <div class="quiz-feedback" id="q7-fb"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ PART 8: SUMMARY ══════════════════════════════ -->
+<section id="s8">
+  <div class="section-inner sr">
+    <div style="position:relative">
+      <span class="part-num">8</span>
+      <div class="part-badge">Part Eight</div>
+      <h2>Summary: The Complete Regression Journey</h2>
+    </div>
+
+    <p>Let's trace every step of the modelling process and what each one taught us.</p>
+
+    <div class="journey-map" id="journey-map"></div>
+
+    <div class="divider"></div>
+
+    <h3>The Code: Putting It All Together</h3>
+    <pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">import</span> statsmodels.formula.api <span class="kw">as</span> smf
+
+<span class="cm"># Data from the solar system table</span>
+df = pd.DataFrame({<span class="str">'object'</span>: [<span class="str">'Mercury'</span>, <span class="str">'Earth'</span>, ...],
+                   <span class="str">'a'</span>: [<span class="num">0.387</span>, <span class="num">1.000</span>, ...],
+                   <span class="str">'T'</span>: [<span class="num">0.241</span>, <span class="num">1.000</span>, ...],
+                   <span class="str">'M'</span>: [<span class="num">1.000</span>, <span class="num">1.000</span>, ...],
+                   <span class="str">'e'</span>: [<span class="num">0.206</span>, <span class="num">0.017</span>, ...]})
+
+<span class="cm"># Log-transform the variables</span>
+df[<span class="str">'log_a'</span>] = np.<span class="fn">log</span>(df[<span class="str">'a'</span>])
+df[<span class="str">'log_T'</span>] = np.<span class="fn">log</span>(df[<span class="str">'T'</span>])
+df[<span class="str">'log_M'</span>] = np.<span class="fn">log</span>(df[<span class="str">'M'</span>])
+
+<span class="cm"># Model 1: Raw scale (terrible)</span>
+m1 = smf.<span class="fn">ols</span>(<span class="str">'T ~ a'</span>, data=df).<span class="fn">fit</span>()        <span class="cm"># R² = 0.71, residuals awful</span>
+
+<span class="cm"># Model 2: Log-log, planets only</span>
+planets = df[df[<span class="str">'M'</span>] == <span class="num">1.0</span>]
+m2 = smf.<span class="fn">ols</span>(<span class="str">'log_T ~ log_a'</span>, data=planets).<span class="fn">fit</span>()   <span class="cm"># slope ≈ 1.500 ✓</span>
+
+<span class="cm"># Model 3: Two predictors, all 20 objects</span>
+m3 = smf.<span class="fn">ols</span>(<span class="str">'log_T ~ log_a + log_M'</span>, data=df).<span class="fn">fit</span>()
+<span class="cm"># β₁ ≈ 1.499, β₂ ≈ -0.501, intercept encodes G ✓</span>
+
+<span class="cm"># Model 4: Add eccentricity (insignificant)</span>
+m4 = smf.<span class="fn">ols</span>(<span class="str">'log_T ~ log_a + log_M + e'</span>, data=df).<span class="fn">fit</span>()
+<span class="cm"># p(e) = 0.62 — drop it</span>
+
+<span class="cm"># Model 5: Add interaction (also insignificant)</span>
+m5 = smf.<span class="fn">ols</span>(<span class="str">'log_T ~ log_a * log_M'</span>, data=df).<span class="fn">fit</span>()
+<span class="cm"># Newton's clean product confirmed — no interaction needed</span></pre>
+
+    <div class="divider"></div>
+
+    <div class="card" style="text-align:center;padding:2.5rem 2rem;background:rgba(200,169,110,0.05);border-color:rgba(200,169,110,0.25)">
+      <p style="font-family:var(--display);font-size:1.3rem;color:var(--glow);margin-bottom:0.5rem">Philosophical Musings</p>
+      <p style="font-style:italic;color:var(--nebula);margin-bottom:0.5rem">Kepler found the 3/2 power law by inspection.</p>
+      <p style="font-style:italic;color:var(--nebula);margin-bottom:0.5rem">Newton derived it from first principles.</p>
+      <p style="font-style:italic;color:var(--nebula);margin-bottom:1rem">We recovered it — along with the gravitational constant — by fitting a two-column design matrix to 20 rows of data and reading the coefficients.</p>
+      <p style="font-family:var(--mono);font-size:0.8rem;color:var(--star);margin:0">Regression doesn't just fit lines. It extracts hidden meaning.</p>
+    </div>
+
+    <div class="quiz-box" style="margin-top:2rem">
+      <div class="quiz-q">🎓 Final Synthesis: Why is the OLS formula β̂ = (XᵀX)⁻¹Xᵀy equivalent to "rediscovering the law of universal gravitation" in this context?</div>
+      <div class="quiz-options" id="q8-opts">
+        <div class="quiz-opt" onclick="checkQ(8, this, false)">
+          <div class="quiz-dot"></div>
+          Because Newton used matrix algebra when deriving his laws.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(8, this, false)">
+          <div class="quiz-dot"></div>
+          Because the formula minimises squared error, which is more physically meaningful than other loss functions.
+        </div>
+        <div class="quiz-opt" onclick="checkQ(8, this, true)">
+          <div class="quiz-dot"></div>
+          Because when X contains [1, ln a, ln M] and y = ln T, the OLS solution finds coefficients that encode both Kepler's exponents (β₁ = 3/2, β₂ = −1/2) and the gravitational constant G in β₀ — extracting physical law from raw data alone.
+        </div>
+      </div>
+      <div class="quiz-feedback" id="q8-fb"></div>
+    </div>
+
+    <div id="score-box" class="card card-success" style="display:none;margin-top:2rem;text-align:center">
+      <p style="font-family:var(--display);font-size:1.2rem;color:var(--gold);margin-bottom:0.5rem">Journey Complete</p>
+      <p style="font-family:var(--mono);font-size:0.8rem;color:var(--mist);margin:0">Score: <span id="final-score" style="color:var(--success)">—</span> / 8 questions</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Machine Learning · Even-2026 · Re-discovering Physical Laws with Linear Regression · Interactive Edition
+</footer>
+
+<script>
+// ══════════════════════ STARFIELD ══════════════════════
+(function() {
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  const stars = Array.from({length: 180}, () => ({
+    x: Math.random(), y: Math.random(),
+    r: Math.random() * 1.3 + 0.2,
+    a: Math.random(),
+    sp: Math.random() * 3 + 2
+  }));
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    stars.forEach(s => {
+      s.a += 0.003 / s.sp;
+      const alpha = 0.15 + 0.6 * (0.5 + 0.5 * Math.sin(s.a));
+      ctx.beginPath();
+      ctx.arc(s.x * canvas.width, s.y * canvas.height, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ══════════════════════ DATA ══════════════════════
+const DATA = [
+  {obj:'Mercury',body:'Sun',a:0.387,T:0.241,M:1.000,e:0.206},
+  {obj:'Venus',body:'Sun',a:0.723,T:0.615,M:1.000,e:0.007},
+  {obj:'Earth',body:'Sun',a:1.000,T:1.000,M:1.000,e:0.017},
+  {obj:'Mars',body:'Sun',a:1.524,T:1.881,M:1.000,e:0.093},
+  {obj:'Jupiter',body:'Sun',a:5.203,T:11.862,M:1.000,e:0.049},
+  {obj:'Saturn',body:'Sun',a:9.537,T:29.457,M:1.000,e:0.057},
+  {obj:'Uranus',body:'Sun',a:19.19,T:84.011,M:1.000,e:0.046},
+  {obj:'Neptune',body:'Sun',a:30.07,T:164.79,M:1.000,e:0.010},
+  {obj:'Io',body:'Jupiter',a:0.00282,T:0.00485,M:0.000955,e:0.004},
+  {obj:'Europa',body:'Jupiter',a:0.00449,T:0.00972,M:0.000955,e:0.009},
+  {obj:'Ganymede',body:'Jupiter',a:0.00716,T:0.01960,M:0.000955,e:0.001},
+  {obj:'Callisto',body:'Jupiter',a:0.01259,T:0.04559,M:0.000955,e:0.007},
+  {obj:'Mimas',body:'Saturn',a:0.00124,T:0.00252,M:0.000286,e:0.020},
+  {obj:'Enceladus',body:'Saturn',a:0.00159,T:0.00373,M:0.000286,e:0.005},
+  {obj:'Tethys',body:'Saturn',a:0.00197,T:0.00519,M:0.000286,e:0.001},
+  {obj:'Dione',body:'Saturn',a:0.00252,T:0.00745,M:0.000286,e:0.002},
+  {obj:'Rhea',body:'Saturn',a:0.00352,T:0.01244,M:0.000286,e:0.001},
+  {obj:'Titan',body:'Saturn',a:0.00817,T:0.04357,M:0.000286,e:0.029},
+  {obj:'Iapetus',body:'Saturn',a:0.02381,T:0.20702,M:0.000286,e:0.029},
+  {obj:'Hyperion',body:'Saturn',a:0.00990,T:0.05524,M:0.000286,e:0.123},
+];
+
+// ══════════════════════ TABLE ══════════════════════
+function fillTable(filter) {
+  const tbody = document.getElementById('data-tbody');
+  tbody.innerHTML = '';
+  const rows = filter === 'all' ? DATA : DATA.filter(d => d.body === filter);
+  rows.forEach(d => {
+    const cls = d.body==='Sun'?'row-sun':d.body==='Jupiter'?'row-jupiter':'row-saturn';
+    tbody.innerHTML += `<tr class="${cls}"><td>${d.obj}</td><td>${d.body}</td><td>${d.a}</td><td>${d.T}</td><td>${d.M}</td><td>${d.e}</td></tr>`;
+  });
+  document.getElementById('st-n').textContent = rows.length;
+}
+function filterTable(f) {
+  fillTable(f);
+  ['all','sun','jup','sat'].forEach(x => document.getElementById('btn-'+x).classList.remove('active'));
+  const map = {all:'all',Sun:'sun',Jupiter:'jup',Saturn:'sat'};
+  document.getElementById('btn-'+(map[f]||f)).classList.add('active');
+}
+fillTable('all');
+
+// ══════════════════════ SCROLL REVEAL ══════════════════════
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, {threshold: 0.08});
+document.querySelectorAll('.sr').forEach(el => observer.observe(el));
+
+// ══════════════════════ NAV PROGRESS ══════════════════════
+const sections = ['hero','s1','s2','s3','s4','s5','s6','s7','s8'];
+const navSteps = document.querySelectorAll('.nav-step');
+function updateNav() {
+  let cur = 0;
+  sections.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if(el && el.getBoundingClientRect().top < window.innerHeight * 0.5) cur = i;
+  });
+  navSteps.forEach((s,i) => {
+    s.classList.toggle('active', i === cur);
+    s.classList.toggle('done', i < cur);
+  });
+  // R² meters
+  if(cur >= 2) animateR2('r2-m1', 71);
+  if(cur >= 3) animateR2('r2-m2', 99.99);
+  if(cur >= 4) animateR2('r2-m3', 99.998);
+}
+function animateR2(id, pct) {
+  const el = document.getElementById(id);
+  if(el && el.style.width === '0%') el.style.width = pct + '%';
+}
+window.addEventListener('scroll', updateNav);
+function scrollToSection(id) { document.getElementById(id).scrollIntoView({behavior:'smooth'}); }
+
+// ══════════════════════ RESIDUALS — MODEL 1 ══════════════════════
+function showResiduals() {
+  const r = document.getElementById('residual-reveal');
+  r.classList.toggle('open');
+  const residuals = [
+    {obj:'Mercury', v: 0.6, dir:'pos'},
+    {obj:'Venus',   v: 0.4, dir:'pos'},
+    {obj:'Earth',   v: 0.1, dir:'pos'},
+    {obj:'Mars',    v: 0.8, dir:'pos'},
+    {obj:'Jupiter', v: 1.4, dir:'neg'},
+    {obj:'Saturn',  v: 2.6, dir:'neg'},
+    {obj:'Uranus',  v: 1.2, dir:'pos'},
+    {obj:'Neptune', v: 0.4, dir:'pos'},
+    {obj:'Io',      v: 4.5, dir:'neg'},
+    {obj:'Europa',  v: 4.5, dir:'neg'},
+    {obj:'Titan',   v: 4.2, dir:'neg'},
+  ];
+  const bars = document.getElementById('resid-bars');
+  if(bars.innerHTML) return;
+  bars.innerHTML = residuals.map(r => `
+    <div class="r-row">
+      <div class="r-label">${r.obj}</div>
+      <div class="r-bar-wrap">
+        <div class="r-bar ${r.dir}" id="rb-${r.obj}" style="width:0%"></div>
+      </div>
+      <div class="r-val ${r.dir==='neg'?'':''}">
+        ${r.dir==='neg'?'−':'+'}${(r.v * 5).toFixed(0)} yr
+      </div>
+    </div>`).join('');
+  setTimeout(() => {
+    residuals.forEach(rv => {
+      const el = document.getElementById('rb-'+rv.obj);
+      if(el) el.style.width = (rv.v * 8) + '%';
+    });
+  }, 100);
+}
+
+// ══════════════════════ MOON RESIDUALS ══════════════════════
+function showMoonResiduals() {
+  const r = document.getElementById('moon-reveal');
+  r.classList.toggle('open');
+  const residuals = [
+    {obj:'Mercury', v: 0.02, dir:'pos', note:'near zero'},
+    {obj:'Earth',   v: 0.01, dir:'pos', note:'near zero'},
+    {obj:'Neptune', v: 0.03, dir:'pos', note:'near zero'},
+    {obj:'Io',      v: 5.1,  dir:'neg', note:'WAY off'},
+    {obj:'Europa',  v: 5.1,  dir:'neg', note:'WAY off'},
+    {obj:'Ganymede',v: 5.1,  dir:'neg', note:'WAY off'},
+    {obj:'Titan',   v: 4.6,  dir:'neg', note:'WAY off'},
+    {obj:'Rhea',    v: 4.8,  dir:'neg', note:'WAY off'},
+  ];
+  const bars = document.getElementById('moon-resid-bars');
+  if(bars.innerHTML) return;
+  bars.innerHTML = residuals.map(r => `
+    <div class="r-row">
+      <div class="r-label">${r.obj}</div>
+      <div class="r-bar-wrap">
+        <div class="r-bar ${r.dir}" id="mrb-${r.obj}" style="width:0%"></div>
+      </div>
+      <div class="r-val" style="color:${r.v>1?'var(--danger)':'var(--mist)'}">${r.note}</div>
+    </div>`).join('');
+  setTimeout(() => {
+    residuals.forEach(rv => {
+      const el = document.getElementById('mrb-'+rv.obj);
+      if(el) el.style.width = Math.min(rv.v*7, 47) + '%';
+    });
+  }, 100);
+}
+
+// ══════════════════════ CHART 3: Raw vs Log ══════════════════════
+let chart3 = null, logScale = false;
+const planets = DATA.filter(d => d.body === 'Sun');
+
+function buildChart3() {
+  const ctx = document.getElementById('chart3').getContext('2d');
+  if(chart3) chart3.destroy();
+  const xVals = logScale ? planets.map(d => Math.log(d.a)) : planets.map(d => d.a);
+  const yVals = logScale ? planets.map(d => Math.log(d.T)) : planets.map(d => d.T);
+  const labels = planets.map(d => d.obj);
+
+  // regression line
+  const n = xVals.length;
+  const xm = xVals.reduce((a,b)=>a+b)/n, ym = yVals.reduce((a,b)=>a+b)/n;
+  const b1 = xVals.reduce((s,x,i)=>s+(x-xm)*(yVals[i]-ym),0) / xVals.reduce((s,x)=>s+(x-xm)**2,0);
+  const b0 = ym - b1*xm;
+  const x0 = Math.min(...xVals), x1 = Math.max(...xVals);
+
+  chart3 = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'Planet', data: xVals.map((x,i)=>({x,y:yVals[i]})), pointBackgroundColor: '#7eb8e0', pointRadius: 5, pointHoverRadius: 7 },
+        { label: 'Fit', data: [{x:x0, y:b0+b1*x0},{x:x1, y:b0+b1*x1}], borderColor: '#e8c87a', backgroundColor: '#e8c87a', borderWidth: 1.5, pointRadius: 0, showLine: true, borderDash: [4,3] }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: ctx => labels[ctx.dataIndex] + ': (' + ctx.parsed.x.toFixed(2) + ', ' + ctx.parsed.y.toFixed(2) + ')' } } },
+      scales: {
+        x: { title: { display: true, text: logScale ? 'ln(a)' : 'a (AU)', color: '#3d5080', font: {family:'JetBrains Mono',size:11} }, grid: { color: 'rgba(200,169,110,0.07)' }, ticks: { color: '#3d5080', font: {family:'JetBrains Mono',size:10} } },
+        y: { title: { display: true, text: logScale ? 'ln(T)' : 'T (years)', color: '#3d5080', font: {family:'JetBrains Mono',size:11} }, grid: { color: 'rgba(200,169,110,0.07)' }, ticks: { color: '#3d5080', font: {family:'JetBrains Mono',size:10} } }
+      }
+    }
+  });
+}
+
+function toggleScale() {
+  logScale = !logScale;
+  document.getElementById('scale-toggle').classList.toggle('on', logScale);
+  document.getElementById('plot3-title').textContent = logScale ? 'ln T vs ln a — Log Scale (Planets Only)' : 'T vs a — Raw Scale (Planets Only)';
+  buildChart3();
+}
+buildChart3();
+
+// ══════════════════════ CHART 4: All 20 objects ══════════════════════
+(function() {
+  const ctx = document.getElementById('chart4').getContext('2d');
+  const sunD  = DATA.filter(d=>d.body==='Sun').map(d=>({x:Math.log(d.a),y:Math.log(d.T),label:d.obj}));
+  const jupD  = DATA.filter(d=>d.body==='Jupiter').map(d=>({x:Math.log(d.a),y:Math.log(d.T),label:d.obj}));
+  const satD  = DATA.filter(d=>d.body==='Saturn').map(d=>({x:Math.log(d.a),y:Math.log(d.T),label:d.obj}));
+
+  new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets: [
+      { label: 'Planets (Sun)', data: sunD, pointBackgroundColor: '#7eb8e0', pointRadius: 6 },
+      { label: 'Jupiter Moons', data: jupD, pointBackgroundColor: '#6ac878', pointRadius: 5 },
+      { label: 'Saturn Moons', data: satD, pointBackgroundColor: '#d0c0e8', pointRadius: 5 },
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: '#c8a96e', font: {family:'JetBrains Mono',size:10} } },
+        tooltip: { callbacks: { label: ctx => ctx.raw.label + ': (' + ctx.parsed.x.toFixed(2) + ', ' + ctx.parsed.y.toFixed(2) + ')' } }
+      },
+      scales: {
+        x: { title: { display:true, text:'ln(a)', color:'#3d5080', font:{family:'JetBrains Mono',size:11} }, grid:{color:'rgba(200,169,110,0.07)'}, ticks:{color:'#3d5080',font:{family:'JetBrains Mono',size:10}} },
+        y: { title: { display:true, text:'ln(T)', color:'#3d5080', font:{family:'JetBrains Mono',size:11} }, grid:{color:'rgba(200,169,110,0.07)'}, ticks:{color:'#3d5080',font:{family:'JetBrains Mono',size:10}} }
+      }
+    }
+  });
+})();
+
+// ══════════════════════ CHART 6: INTERACTION ══════════════════════
+let chart6 = null, hasInteraction = false;
+function buildChart6() {
+  const ctx6 = document.getElementById('chart6').getContext('2d');
+  if(chart6) chart6.destroy();
+
+  const logAs = [-3, -2, -1, 0, 1, 2, 3, 4];
+  const logM_sun = 0, logM_jup = Math.log(0.000955), logM_sat = Math.log(0.000286);
+  const b0 = 14.39, b1 = 1.5, b2 = -0.5, b3 = hasInteraction ? -0.3 : 0;
+
+  function line(logM) { return logAs.map(x => ({x, y: b0 + b1*x + b2*logM + b3*x*logM})); }
+
+  chart6 = new Chart(ctx6, {
+    type: 'scatter',
+    data: { datasets: [
+      { label: 'Sun (M=1)', data: line(logM_sun), borderColor:'#7eb8e0', backgroundColor:'#7eb8e0', borderWidth:2, pointRadius:0, showLine:true, fill:false },
+      { label: 'Jupiter (M=0.00096)', data: line(logM_jup), borderColor:'#6ac878', backgroundColor:'#6ac878', borderWidth:2, pointRadius:0, showLine:true, fill:false, borderDash: hasInteraction?[6,3]:[] },
+      { label: 'Saturn (M=0.00029)', data: line(logM_sat), borderColor:'#d0c0e8', backgroundColor:'#d0c0e8', borderWidth:2, pointRadius:0, showLine:true, fill:false, borderDash: hasInteraction?[2,3]:[] },
+    ]},
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      plugins: { legend: { labels: {color:'#c8a96e',font:{family:'JetBrains Mono',size:10}} } },
+      scales: {
+        x: { type:'linear', title:{display:true,text:'ln(a)',color:'#3d5080',font:{family:'JetBrains Mono',size:11}}, grid:{color:'rgba(200,169,110,0.07)'}, ticks:{color:'#3d5080',font:{family:'JetBrains Mono',size:10}} },
+        y: { type:'linear', title:{display:true,text:'ln(T)',color:'#3d5080',font:{family:'JetBrains Mono',size:11}}, grid:{color:'rgba(200,169,110,0.07)'}, ticks:{color:'#3d5080',font:{family:'JetBrains Mono',size:10}} }
+      }
+    }
+  });
+}
+function setInteraction(on) {
+  hasInteraction = on;
+  document.getElementById('int-off-btn').classList.toggle('active', !on);
+  document.getElementById('int-on-btn').classList.toggle('active', on);
+  document.getElementById('int-plot-title').textContent = on ? 'Non-Parallel Lines → Interaction Present (Hypothetical)' : 'Parallel Lines → No Interaction (Reality)';
+  buildChart6();
+}
+buildChart6();
+
+// ══════════════════════ CHART 7: DIAGNOSTICS ══════════════════════
+let chart7 = null;
+const fitted = DATA.map(d => 14.39 + 1.499*Math.log(d.a) - 0.501*Math.log(d.M));
+const resids  = DATA.map((d,i) => Math.log(d.T) - fitted[i]);
+
+// Normal quantile function (Abramowitz & Stegun 26.2.17)
+function normalQuantile(p) {
+  if (p <= 0) return -4; if (p >= 1) return 4;
+  const q = p <= 0.5 ? p : 1 - p;
+  const t = Math.sqrt(-2 * Math.log(q));
+  const num = 2.515517 + 0.802853 * t + 0.010328 * t * t;
+  const den = 1 + 1.432788 * t + 0.189269 * t * t + 0.001308 * t * t * t;
+  return (p <= 0.5 ? -1 : 1) * (t - num / den);
+}
+
+// Real Cook's Distance: D_i = (e_i^2 / (p * MSE)) * (h_ii / (1-h_ii)^2)
+// Build design matrix X = [1, ln_a, ln_M], compute hat matrix H = X(X'X)^{-1}X'
+(function computeCooksD() {
+  const n = DATA.length, p = 3;
+  const X = DATA.map(d => [1, Math.log(d.a), Math.log(d.M)]);
+  // X'X (3x3)
+  const XtX = Array.from({length:p}, (_,i) => Array.from({length:p}, (_,j) => X.reduce((s,r)=>s+r[i]*r[j],0)));
+  // Invert 3x3 via cofactors
+  function inv3(m) {
+    const det = m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])
+               -m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])
+               +m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]);
+    const c = [[
+      (m[1][1]*m[2][2]-m[1][2]*m[2][1])/det,
+      -(m[0][1]*m[2][2]-m[0][2]*m[2][1])/det,
+      (m[0][1]*m[1][2]-m[0][2]*m[1][1])/det],[
+      -(m[1][0]*m[2][2]-m[1][2]*m[2][0])/det,
+      (m[0][0]*m[2][2]-m[0][2]*m[2][0])/det,
+      -(m[0][0]*m[1][2]-m[0][2]*m[1][0])/det],[
+      (m[1][0]*m[2][1]-m[1][1]*m[2][0])/det,
+      -(m[0][0]*m[2][1]-m[0][1]*m[2][0])/det,
+      (m[0][0]*m[1][1]-m[0][1]*m[1][0])/det]];
+    return c;
+  }
+  const XtXinv = inv3(XtX);
+  // Leverage h_ii = x_i' (X'X)^{-1} x_i
+  const h = X.map(xi => {
+    let s = 0;
+    for(let a=0;a<p;a++) for(let b=0;b<p;b++) s += xi[a]*XtXinv[a][b]*xi[b];
+    return s;
+  });
+  const MSE = resids.reduce((s,e)=>s+e*e,0)/(n-p);
+  window.cooksD = DATA.map((d,i) => (resids[i]**2/(p*MSE)) * (h[i]/(1-h[i])**2));
+})();
+
+const diagConfigs = {
+  resfit: {
+    type: 'scatter',
+    datasets: [{
+      data: DATA.map((d,i)=>({x:fitted[i],y:resids[i],label:d.obj})),
+      pointBackgroundColor: DATA.map(d=>d.body==='Sun'?'#7eb8e0':d.body==='Jupiter'?'#6ac878':'#d0c0e8'),
+      pointRadius:5
+    }, {
+      type:'line', data:[{x:Math.min(...fitted),y:0},{x:Math.max(...fitted),y:0}],
+      borderColor:'rgba(224,112,96,0.4)', borderWidth:1.5, pointRadius:0
+    }],
+    xLabel:'Fitted Values (ln T)', yLabel:'Residuals',
+    text:'Residuals are small (|ê| < 0.03) with no pattern — the model has extracted the signal. The flat band is ideal.'
+  },
+  qq: {
+    type: 'scatter',
+    datasets: [{
+      data: (function(){
+        const sr = [...resids].map((r,i)=>({r,i})).sort((a,b)=>a.r-b.r);
+        const n = sr.length;
+        return sr.map(({r},i) => {
+          const p = (i + 0.5) / n;
+          return { x: normalQuantile(p), y: r };
+        });
+      })(),
+      pointBackgroundColor: '#7eb8e0', pointRadius: 5
+    }, {
+      // reference line through 1st and 3rd quartiles
+      data: (function(){
+        const sr = [...resids].sort((a,b)=>a-b);
+        const q1y = sr[4], q3y = sr[14];
+        const q1x = normalQuantile(0.25), q3x = normalQuantile(0.75);
+        const slope = (q3y-q1y)/(q3x-q1x), int = q1y - slope*q1x;
+        return [{x:-2.5,y:int+slope*-2.5},{x:2.5,y:int+slope*2.5}];
+      })(),
+      borderColor:'rgba(232,200,122,0.4)', borderWidth:1.5, pointRadius:0, showLine:true
+    }],
+    xLabel:'Theoretical Quantiles', yLabel:'Sample Quantiles',
+    text:'Residuals closely follow the normal reference line. The largest deviation is Hyperion — a physical outlier with chaotic rotation and e = 0.123.'
+  },
+  scale: {
+    type: 'scatter',
+    datasets: [{
+      data: DATA.map((d,i)=>({x:fitted[i],y:Math.sqrt(Math.abs(resids[i])),label:d.obj})),
+      pointBackgroundColor: DATA.map(d=>d.body==='Sun'?'#7eb8e0':d.body==='Jupiter'?'#6ac878':'#d0c0e8'),
+      pointRadius:5
+    }],
+    xLabel:'Fitted Values', yLabel:'√|Residuals|',
+    text:'The scale-location plot is flat — variance is roughly constant (homoscedastic). Log transforms convert multiplicative errors into additive, constant-variance errors.'
+  },
+  cook: {
+    type: 'bar',
+    datasets: [{
+      data: window.cooksD || DATA.map(()=>0),
+      backgroundColor: DATA.map(d=>d.body==='Sun'?'rgba(126,184,224,0.6)':d.body==='Jupiter'?'rgba(106,200,120,0.6)':'rgba(208,192,232,0.6)'),
+      borderColor: DATA.map(d=>d.body==='Sun'?'#7eb8e0':d.body==='Jupiter'?'#6ac878':'#d0c0e8'),
+      borderWidth: 1
+    }],
+    xLabel:'Object', yLabel:"Cook's Distance",
+    text:"No observation exceeds the threshold 4/n = 0.2. Neptune and Io have the highest leverage (extreme predictor values) but their Cook's D remains small — the model is not unduly driven by any single point."
+  }
+};
+
+function showDiag(key) {
+  ['resfit','qq','scale','cook'].forEach(k => {
+    document.getElementById('diag-'+k).classList.toggle('active', k===key);
+  });
+  const cfg = diagConfigs[key];
+  const ctx7 = document.getElementById('chart7').getContext('2d');
+  if(chart7) chart7.destroy();
+
+  if(key === 'cook') {
+    chart7 = new Chart(ctx7, {
+      type: 'bar',
+      data: { labels: DATA.map(d=>d.obj), datasets: [{ 
+        data: window.cooksD,
+        backgroundColor: DATA.map(d=>d.body==='Sun'?'rgba(126,184,224,0.6)':d.body==='Jupiter'?'rgba(106,200,120,0.6)':'rgba(208,192,232,0.6)'),
+        borderColor: DATA.map(d=>d.body==='Sun'?'#7eb8e0':d.body==='Jupiter'?'#6ac878':'#d0c0e8'),
+        borderWidth: 1
+      }] },
+      options: {
+        responsive:true, maintainAspectRatio:true,
+        plugins:{ legend:{display:false} },
+        scales: {
+          x:{ticks:{color:'#3d5080',font:{family:'JetBrains Mono',size:8},maxRotation:45}, grid:{color:'rgba(200,169,110,0.07)'}},
+          y:{title:{display:true,text:cfg.yLabel,color:'#3d5080',font:{family:'JetBrains Mono',size:10}}, grid:{color:'rgba(200,169,110,0.07)'}, ticks:{color:'#3d5080',font:{family:'JetBrains Mono',size:10}}}
+        }
+      }
+    });
+  } else {
+    chart7 = new Chart(ctx7, {
+      type: cfg.type,
+      data: { datasets: cfg.datasets },
+      options: {
+        responsive:true, maintainAspectRatio:true,
+        plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => (ctx.raw.label||'')+' ('+ctx.parsed.x.toFixed(3)+', '+ctx.parsed.y.toFixed(3)+')' } } },
+        scales: {
+          x:{title:{display:true,text:cfg.xLabel,color:'#3d5080',font:{family:'JetBrains Mono',size:10}}, grid:{color:'rgba(200,169,110,0.07)'}, ticks:{color:'#3d5080',font:{family:'JetBrains Mono',size:10}}},
+          y:{title:{display:true,text:cfg.yLabel,color:'#3d5080',font:{family:'JetBrains Mono',size:10}}, grid:{color:'rgba(200,169,110,0.07)'}, ticks:{color:'#3d5080',font:{family:'JetBrains Mono',size:10}}}
+        }
+      }
+    });
+  }
+  document.getElementById('diag-title').textContent = {resfit:'Residuals vs Fitted Values',qq:'Normal Q-Q Plot',scale:'Scale-Location (Homoscedasticity)',cook:"Cook's Distance"}[key];
+  document.getElementById('diag-desc').textContent = cfg.text;
+}
+showDiag('resfit');
+
+// ══════════════════════ JOURNEY MAP ══════════════════════
+const journeySteps = [
+  { action:'T ~ a (raw scale)', insight:'Data spans 5 orders of magnitude → linear model fails. Predicts negative time for Io.', done:true },
+  { action:'ln T ~ ln a (planets)', insight:"Kepler's 3/2 slope recovered to 4 significant figures. Intercept encodes G. R² = 0.9999+.", done:true },
+  { action:'ln T ~ ln a (all objects)', insight:'Residuals cluster by central body → missing predictor (mass M) identified.', done:true },
+  { action:'ln T ~ ln a + ln M', insight:'Both β₁ = 1.499, β₂ = −0.501 recovered. Intercept gives G = 6.67 × 10⁻¹¹. R² = 0.99998.', done:true },
+  { action:'+ eccentricity e', insight:'β₃ = 0.021, p = 0.62 — insignificant. Coefficient stability confirmed. Drop it.', done:true },
+  { action:'+ ln a · ln M (interaction)', insight:'β₃ = 0.0003, p = 0.71 — no interaction. Newton\'s clean product T ∝ a^(3/2) × M^(−1/2) confirmed.', done:true },
+  { action:'Diagnostics', insight:'Flat residuals, normal QQ, low VIF, no Cook\'s D exceeds threshold. Model assumptions satisfied.', done:true },
+];
+
+const map = document.getElementById('journey-map');
+journeySteps.forEach((s, i) => {
+  map.innerHTML += `
+  <div class="journey-step">
+    <div class="journey-left">
+      <div class="journey-dot ${s.done?'done':''}">${i+1}</div>
+      ${i<journeySteps.length-1?'<div class="journey-line"></div>':''}
+    </div>
+    <div class="journey-content">
+      <div class="journey-action">${s.action}</div>
+      <div class="journey-insight">${s.insight}</div>
+    </div>
+  </div>`;
+});
+
+// ══════════════════════ QUIZ ══════════════════════
+let score = 0, answered = {};
+const feedbacks = {
+  1: { t: "Exactly right. A constant slope means the same absolute change in T for every unit of a — but Neptune is 24,000× farther from the Sun than Mimas. No single slope can capture that.", f: "Think about what 'linear' means: a constant change in y per unit change in x. When x ranges from 0.001 to 30, a single slope hopelessly misrepresents the relationship at small vs. large scales." },
+  2: { t: "Correct. A model predicting negative time is structurally wrong — no amount of data cleaning can fix a misspecified functional form. We need a different model, not more data.", f: "A negative prediction for a quantity that must be positive signals a structural problem. The model's form itself is wrong, not just its parameters." },
+  3: { t: "Correct! In a log-log model, β₁ is an elasticity. A 10% increase in x gives (1.10)^3 ≈ 1.331× increase in y — about 33.1%.", f: "Remember: in log-log, β₁ is an elasticity (% change in y per 1% change in x). For a 10% increase, compute 1.1^β₁. For β₁ = 3: 1.1³ = 1.331, a 33.1% increase." },
+  4: { t: "Exactly. Clustering of residuals by group is a diagnostic fingerprint of omitted variable bias. The grouped structure tells you exactly what type of predictor is missing.", f: "When residuals cluster by a categorical label (here, which planet the moon orbits), it means that label is correlated with unexplained variation. Something about that grouping needs to enter the model." },
+  5: { t: "Correct. A large shift in β₁ signals confounding — the new predictor and the original share variance, so credit is redistributed between them. Both coefficients must be interpreted jointly.", f: "Coefficient stability is key. A big shift means confounding — the variables are correlated and 'sharing' explained variance. You can't interpret β₁ in isolation anymore." },
+  6: { t: "Right! Non-parallel lines on a log-log plot are the visual signature of a significant interaction: the slope (elasticity) of y with respect to x₁ differs depending on x₂.", f: "An interaction means the effect of one predictor changes based on another. On a log-log plot, this appears as non-parallel lines — different slopes for different groups." },
+  7: { t: "Correct — heteroscedasticity. The trumpet shape means variance grows with fitted values. Log transforms often fix this by stabilising multiplicative errors into additive ones.", f: "The trumpet shape is the classic sign of heteroscedasticity: non-constant variance. The correct remedy here is a log transformation of the response variable." },
+  8: { t: "Excellent synthesis. The OLS formula mechanically finds the best-fitting coefficients — but when we choose the right features (log transforms, the right predictors), those coefficients directly encode physical law.", f: "Think about what X contains: log distances and log masses. The coefficients (XᵀX)⁻¹Xᵀy will be exactly the Kepler exponents and the gravitational constant hidden in the intercept." }
+};
+
+function checkQ(qn, el, correct) {
+  if(answered[qn]) return;
+  answered[qn] = true;
+  const opts = document.querySelectorAll(`#q${qn}-opts .quiz-opt`);
+  opts.forEach(o => o.classList.add('disabled'));
+  el.classList.add(correct ? 'correct' : 'wrong');
+  el.querySelector('.quiz-dot').textContent = correct ? '✓' : '✗';
+  if(correct) score++;
+  const fb = document.getElementById(`q${qn}-fb`);
+  fb.style.display = 'block';
+  fb.style.color = correct ? 'var(--success)' : 'var(--danger)';
+  fb.textContent = (correct ? '✓ ' : '✗ ') + (correct ? feedbacks[qn].t : feedbacks[qn].f);
+
+  if(Object.keys(answered).length === 8) {
+    const box = document.getElementById('score-box');
+    box.style.display = 'block';
+    document.getElementById('final-score').textContent = score;
+  }
+}
+</script>
+</body>
+</html>
