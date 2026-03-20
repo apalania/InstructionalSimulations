@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Training - Complete Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .setup-section {
+            background: #f0f4ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 2px solid #667eea;
+        }
+        
+        .setup-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .input-set {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+        
+        .input-set label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 13px;
+        }
+        
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        input[type="number"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .panel h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+        }
+        
+        .value-display {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .calculation-step {
+            background: white;
+            padding: 12px;
+            margin: 8px 0;
+            border-left: 4px solid #667eea;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            line-height: 1.5;
+        }
+        
+        .calculation-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .calculation-value {
+            color: #667eea;
+            font-weight: 600;
+            background: #f0f4ff;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        
+        .sample-select {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .sample-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 10px;
+            background: #e0e0e0;
+            border: 2px solid transparent;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .sample-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #5568d3;
+        }
+        
+        .network-viz {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            min-height: 200px;
+        }
+        
+        .layer {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .neuron {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 12px;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        
+        .input-neuron {
+            background: #4CAF50;
+        }
+        
+        .hidden-neuron {
+            background: #2196F3;
+        }
+        
+        .output-neuron {
+            background: #FF9800;
+        }
+        
+        .neuron-value {
+            font-size: 16px;
+        }
+        
+        .layer-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            font-size: 22px;
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        .weight-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            margin: 10px 0;
+        }
+        
+        .weight-table th,
+        .weight-table td {
+            padding: 6px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        
+        .weight-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .weight-table tr:nth-child(even) {
+            background: #f5f5f5;
+        }
+        
+        .epoch-display {
+            font-size: 16px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .gradient-update {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .gradient-before {
+            color: #d32f2f;
+        }
+        
+        .gradient-after {
+            color: #388e3c;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .tab-btn {
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+            margin-bottom: -2px;
+        }
+        
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .equation {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        
+        .gradient-chain {
+            background: #e8f5e9;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Neural Network Training Demo</h1>
+        
+        <!-- Setup Section -->
+        <div class="setup-section">
+            <h2 style="margin-bottom: 15px; color: #333;">Training Data Setup</h2>
+            <div style="margin-bottom: 15px;">
+                <label style="font-weight: 600; font-size: 13px;">Number of Training Instances:</label>
+                <input type="number" id="numInstances" value="3" min="1" max="20" step="1" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 80px; margin-left: 10px;">
+                <button onclick="updateNumberOfInstances()" style="margin-left: 10px; padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: 600;">Update Instances</button>
+            </div>
+            <div class="setup-grid">
+                <div id="dataInputs"></div>
+                <div>
+                    <div class="input-set">
+                        <label>Hyperparameters</label>
+                        <div class="input-row">
+                            <div>
+                                <label style="font-size: 11px;">Learning Rate</label>
+                                <input type="number" id="lrInput" value="0.1" min="0.01" max="1" step="0.01">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px;">Batch Size</label>
+                                <input type="number" id="batchSizeInput" value="1" min="1" max="3" step="1">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px;">Epochs</label>
+                                <input type="number" id="epochInput" value="10" min="1" max="1000" step="1">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-set">
+                        <label>Hidden Layer Activation</label>
+                        <div class="input-row">
+                            <div>
+                                <label style="font-size: 11px;">Activation Function</label>
+                                <select id="hiddenActivation" onchange="updateActivationFunction()" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                                    <option value="relu">ReLU</option>
+                                    <option value="sigmoid">Sigmoid</option>
+                                    <option value="tanh">Tanh</option>
+                                    <option value="linear">Linear</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="input-set">
+                        <label>Loss Function & Output Layer</label>
+                        <div class="input-row">
+                            <div>
+                                <label style="font-size: 11px;">Loss Function</label>
+                                <select id="lossFunction" onchange="updateLossFunction()" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                                    <option value="bce">Binary Cross-Entropy</option>
+                                    <option value="mse">Mean Squared Error</option>
+                                    <option value="mae">Mean Absolute Error</option>
+                                    <option value="huber">Huber Loss</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 11px;">Output Activation</label>
+                                <select id="outputActivation" onchange="updateActivationFunction()" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                                    <option value="sigmoid">Sigmoid</option>
+                                    <option value="relu">ReLU</option>
+                                    <option value="tanh">Tanh</option>
+                                    <option value="linear">Linear</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: #666; margin-top: 8px; padding: 8px; background: #f0f0f0; border-radius: 4px;">
+                            <strong>Recommended combinations:</strong><br>
+                            • Classification (0/1): Sigmoid + Binary Cross-Entropy<br>
+                            • Regression (continuous): Linear + MSE or MAE
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center;">
+                <button onclick="applyData()">Apply Configuration</button>
+                <button onclick="resetToDefault()">Reset to Default</button>
+            </div>
+        </div>
+        
+        <div class="main-grid">
+            <!-- Left Panel: Controls -->
+            <div class="panel">
+                <h2>Training Controls</h2>
+                
+                <div class="controls">
+                    <button onclick="stepEpoch()">Step 1 Epoch</button>
+                    <button onclick="trainAuto()">Auto Train</button>
+                    <button onclick="trainToConvergence()">Train to Convergence</button>
+                    <button onclick="stopTraining()">Stop</button>
+                    <button onclick="resetNetwork()">Reset</button>
+                </div>
+                
+                <div class="epoch-display">Epoch: <span id="epochCount">0</span></div>
+                
+                <h2 style="margin-top: 20px;">Convergence Training</h2>
+                <div class="input-group">
+                    <label style="font-size: 12px;">Loss Threshold: <span class="value-display" id="threshDisplay">0.01</span></label>
+                    <input type="number" id="lossThreshold" value="0.01" min="0.0001" max="10" step="0.001" onchange="document.getElementById('threshDisplay').textContent = this.value" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                </div>
+                <div class="input-group">
+                    <label style="font-size: 12px;">Max Iterations: <span class="value-display" id="maxIterDisplay">1000</span></label>
+                    <input type="number" id="maxIterInput" value="1000" min="10" max="10000" step="10" onchange="document.getElementById('maxIterDisplay').textContent = this.value" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                </div>
+                
+                <h2 style="margin-top: 20px;">Batch Selection (Batch Size: <span id="batchSizeDisplay">1</span>)</h2>
+                <div class="sample-select" id="sampleBtns"></div>
+                <p style="font-size: 12px; color: #666; margin-top: 10px;">Select up to <span id="maxBatchDisplay">1</span> sample(s) for batch processing</p>
+                
+                <h2 style="margin-top: 20px;">Current Weights & Biases</h2>
+                <table class="weight-table">
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Value</th>
+                    </tr>
+                    <tbody id="weightTable"></tbody>
+                </table>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 4px;">
+                    <strong style="font-size: 12px;">Architecture:</strong>
+                    <div style="font-size: 12px; line-height: 1.6; margin-top: 8px;">
+                        • Input: 2 neurons<br>
+                        • Hidden: 2 neurons (ReLU)<br>
+                        • Output: 1 neuron (Sigmoid)<br>
+                        • Loss: Binary Cross-Entropy
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel: Metrics -->
+            <div class="panel">
+                <h2>Predictions & Loss</h2>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Prediction</div>
+                        <div class="metric-value" id="prediction">0.00</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Target</div>
+                        <div class="metric-value" id="target">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Loss</div>
+                        <div class="metric-value" id="loss">0.00</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Avg Loss</div>
+                        <div class="metric-value" id="avgLoss">0.00</div>
+                    </div>
+                </div>
+                
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('forward')">Forward Pass</button>
+                    <button class="tab-btn" onclick="switchTab('backward')">Backpropagation</button>
+                    <button class="tab-btn" onclick="switchTab('gradient')">Gradient Descent</button>
+                </div>
+                
+                <div id="forward" class="tab-content active">
+                    <div id="forwardCalcs"></div>
+                </div>
+                
+                <div id="backward" class="tab-content">
+                    <div id="backwardCalcs"></div>
+                </div>
+                
+                <div id="gradient" class="tab-content">
+                    <div id="gradientCalcs"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Network Visualization -->
+        <div class="panel full-width">
+            <h2>Network Architecture with Weighted Connections</h2>
+            <div style="position: relative; background: white; border-radius: 8px; padding: 20px;">
+                <svg id="networkSVG" style="width: 100%; height: 400px; border: 1px solid #e0e0e0; border-radius: 6px;"></svg>
+            </div>
+        </div>
+        
+        <!-- Training Progress -->
+        <div class="panel full-width">
+            <h2>Training Progress</h2>
+            <div class="chart-container">
+                <canvas id="lossChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Network state
+        let network = {
+            W1: [[1, 1], [1, 1]],
+            b1: [0, 0],
+            W2: [[1, 1]],
+            b2: [0],
+            learningRate: 0.1
+        };
+        
+        let trainingData = [
+            {input: [0, 1], target: 0},
+            {input: [1, 0], target: 1},
+            {input: [1, 1], target: 1}
+        ];
+        
+        let state = {
+            currentSample: 0,
+            selectedSamples: [0],
+            batchSize: 1,
+            epoch: 0,
+            losses: [],
+            isTraining: false,
+            activations: null,
+            lastGradients: null,
+            hiddenActivation: 'relu',
+            outputActivation: 'sigmoid',
+            lossFunction: 'bce'
+        };
+        
+        let chart = null;
+        
+        // Utility functions
+        function sigmoid(x) {
+            return 1 / (1 + Math.exp(-Math.min(Math.max(x, -500), 500)));
+        }
+        
+        function sigmoidDerivative(a) {
+            return a * (1 - a);
+        }
+        
+        function relu(x) {
+            return Math.max(0, x);
+        }
+        
+        function reluDerivative(x) {
+            return x > 0 ? 1 : 0;
+        }
+        
+        function tanh(x) {
+            return Math.tanh(x);
+        }
+        
+        function tanhDerivative(a) {
+            return 1 - a * a;
+        }
+        
+        function linear(x) {
+            return x;
+        }
+        
+        function linearDerivative(x) {
+            return 1;
+        }
+        
+        function applyActivation(x, func) {
+            switch(func) {
+                case 'sigmoid': return sigmoid(x);
+                case 'relu': return relu(x);
+                case 'tanh': return tanh(x);
+                case 'linear': return linear(x);
+                default: return sigmoid(x);
+            }
+        }
+        
+        function applyActivationDerivative(val, func, isPreActivation = false) {
+            switch(func) {
+                case 'sigmoid': return sigmoidDerivative(val);
+                case 'relu': return isPreActivation ? reluDerivative(val) : 1; // val is pre-activation
+                case 'tanh': return tanhDerivative(val);
+                case 'linear': return linearDerivative(val);
+                default: return sigmoidDerivative(val);
+            }
+        }
+        
+        function getActivationName(func) {
+            switch(func) {
+                case 'sigmoid': return 'Sigmoid(z)';
+                case 'relu': return 'ReLU(z)';
+                case 'tanh': return 'Tanh(z)';
+                case 'linear': return 'Linear(z)';
+                default: return 'Sigmoid(z)';
+            }
+        }
+        
+        // Loss functions
+        function calculateLoss(prediction, target, lossFunc = 'bce') {
+            let p = Math.max(1e-7, Math.min(1 - 1e-7, prediction));
+            switch(lossFunc) {
+                case 'bce':
+                    return -(target * Math.log(p) + (1 - target) * Math.log(1 - p));
+                case 'mse':
+                    return Math.pow(prediction - target, 2);
+                case 'mae':
+                    return Math.abs(prediction - target);
+                case 'huber':
+                    let delta = 1.0;
+                    let diff = Math.abs(prediction - target);
+                    return diff <= delta ? 0.5 * Math.pow(diff, 2) : delta * (diff - 0.5 * delta);
+                default:
+                    return -(target * Math.log(p) + (1 - target) * Math.log(1 - p));
+            }
+        }
+        
+        // Loss gradient w.r.t. output (dL/da2)
+        function calculateLossGradient(prediction, target, lossFunc = 'bce') {
+            switch(lossFunc) {
+                case 'bce':
+                    return prediction - target;
+                case 'mse':
+                    return 2 * (prediction - target);
+                case 'mae':
+                    return Math.sign(prediction - target);
+                case 'huber':
+                    let delta = 1.0;
+                    let diff = prediction - target;
+                    return Math.abs(diff) <= delta ? diff : Math.sign(diff) * delta;
+                default:
+                    return prediction - target;
+            }
+        }
+        
+        function getLossFunctionName(func) {
+            switch(func) {
+                case 'bce': return 'Binary Cross-Entropy';
+                case 'mse': return 'Mean Squared Error';
+                case 'mae': return 'Mean Absolute Error';
+                case 'huber': return 'Huber Loss';
+                default: return 'Binary Cross-Entropy';
+            }
+        }
+        
+        function forward(input) {
+            // Hidden layer
+            let z1 = [
+                input[0] * network.W1[0][0] + input[1] * network.W1[1][0] + network.b1[0],
+                input[0] * network.W1[0][1] + input[1] * network.W1[1][1] + network.b1[1]
+            ];
+            let a1 = [
+                applyActivation(z1[0], state.hiddenActivation),
+                applyActivation(z1[1], state.hiddenActivation)
+            ];
+            
+            // Output layer
+            let z2 = a1[0] * network.W2[0][0] + a1[1] * network.W2[0][1] + network.b2[0];
+            let a2 = applyActivation(z2, state.outputActivation);
+            
+            return {
+                z1, a1, z2, a2,
+                input: input,
+            };
+        }
+        
+        function backward(sample, activations) {
+            let {input, a1, z1, a2} = activations;
+            let target = sample.target;
+            
+            // Output layer gradients - use configurable loss function
+            let dL_da2 = calculateLossGradient(a2, target, state.lossFunction);
+            let da2_dz2 = applyActivationDerivative(a2, state.outputActivation, false);
+            let dL_dz2 = dL_da2 * da2_dz2;
+            
+            // W2 and b2 gradients
+            let dL_dW2 = [dL_dz2 * a1[0], dL_dz2 * a1[1]];
+            let dL_db2 = dL_dz2;
+            
+            // Hidden layer gradients
+            let dz2_da1_0 = network.W2[0][0];
+            let dz2_da1_1 = network.W2[0][1];
+            
+            let da1_dz1_0 = applyActivationDerivative(z1[0], state.hiddenActivation, true);
+            let da1_dz1_1 = applyActivationDerivative(z1[1], state.hiddenActivation, true);
+            
+            let dL_dz1_0 = dL_dz2 * dz2_da1_0 * da1_dz1_0;
+            let dL_dz1_1 = dL_dz2 * dz2_da1_1 * da1_dz1_1;
+            
+            // W1 and b1 gradients
+            let dL_dW1 = [
+                [dL_dz1_0 * input[0], dL_dz1_1 * input[0]],
+                [dL_dz1_0 * input[1], dL_dz1_1 * input[1]]
+            ];
+            let dL_db1 = [dL_dz1_0, dL_dz1_1];
+            
+            return {
+                dL_dW1, dL_db1, dL_dW2, dL_db2,
+                dL_da2, da2_dz2, dL_dz2,
+                dL_dz1: [dL_dz1_0, dL_dz1_1]
+            };
+        }
+        
+        function updateWeights(gradients) {
+            let lr = network.learningRate;
+            let oldWeights = {
+                W1: [network.W1[0].slice(), network.W1[1].slice()],
+                b1: network.b1.slice(),
+                W2: [network.W2[0].slice()],
+                b2: network.b2.slice()
+            };
+            
+            for (let i = 0; i < 2; i++) {
+                for (let j = 0; j < 2; j++) {
+                    network.W1[i][j] -= lr * gradients.dL_dW1[i][j];
+                }
+                network.b1[i] -= lr * gradients.dL_db1[i];
+            }
+            
+            for (let j = 0; j < 2; j++) {
+                network.W2[0][j] -= lr * gradients.dL_dW2[j];
+            }
+            network.b2[0] -= lr * gradients.dL_db2;
+            
+            return {old: oldWeights, new: {W1: network.W1, b1: network.b1, W2: network.W2, b2: network.b2}};
+        }
+        
+        function initializeUI() {
+            // Get number of instances
+            let numInstances = parseInt(document.getElementById('numInstances').value) || 3;
+            
+            // Ensure trainingData has the right number of instances
+            while (trainingData.length < numInstances) {
+                trainingData.push({input: [0, 0], target: 0});
+            }
+            trainingData = trainingData.slice(0, numInstances);
+            
+            // Data inputs
+            let html = `<div class="input-set"><label>Training Instances (${numInstances} total)</label>`;
+            for (let i = 0; i < numInstances; i++) {
+                html += `
+                    <div class="input-row">
+                        <input type="number" id="input${i}_0" value="${trainingData[i].input[0]}" min="0" max="1" step="0.1" placeholder="x1">
+                        <input type="number" id="input${i}_1" value="${trainingData[i].input[1]}" min="0" max="1" step="0.1" placeholder="x2">
+                        <input type="number" id="target${i}" value="${trainingData[i].target}" min="0" max="1" step="0.1" placeholder="y">
+                    </div>
+                `;
+            }
+            html += '</div>';
+            document.getElementById('dataInputs').innerHTML = html;
+            
+            // Setup batch size display
+            state.batchSize = parseInt(document.getElementById('batchSizeInput').value) || 1;
+            state.selectedSamples = [0];
+            document.getElementById('batchSizeDisplay').textContent = state.batchSize;
+            document.getElementById('maxBatchDisplay').textContent = Math.min(state.batchSize, numInstances);
+            
+            // Sample buttons
+            updateSampleButtons();
+            
+            // Weight table
+            updateWeightTable();
+            
+            // Display
+            displayActivations();
+            updateChart();
+        }
+        
+        function updateNumberOfInstances() {
+            let numInstances = parseInt(document.getElementById('numInstances').value) || 3;
+            
+            if (numInstances < 1) {
+                alert('Minimum 1 instance required');
+                document.getElementById('numInstances').value = 1;
+                return;
+            }
+            
+            if (numInstances > 20) {
+                alert('Maximum 20 instances allowed');
+                document.getElementById('numInstances').value = 20;
+                return;
+            }
+            
+            // Ensure trainingData has the right size
+            while (trainingData.length < numInstances) {
+                trainingData.push({input: [0, 0], target: 0});
+            }
+            trainingData = trainingData.slice(0, numInstances);
+            
+            // Update batch size limit
+            let batchSizeInput = parseInt(document.getElementById('batchSizeInput').value) || 1;
+            if (batchSizeInput > numInstances) {
+                document.getElementById('batchSizeInput').value = numInstances;
+            }
+            document.getElementById('batchSizeInput').max = numInstances;
+            
+            initializeUI();
+            resetNetwork();
+        }
+        
+        function updateSampleButtons() {
+            let html = '';
+            for (let i = 0; i < trainingData.length; i++) {
+                let inp = trainingData[i].input;
+                let tgt = trainingData[i].target;
+                let isActive = state.selectedSamples.includes(i);
+                html += `<button class="sample-btn ${isActive ? 'active' : ''}" 
+                         onclick="toggleSample(${i})">
+                         Input: (${inp[0]},${inp[1]})<br>Target: ${tgt}</button>`;
+            }
+            document.getElementById('sampleBtns').innerHTML = html;
+        }
+        
+        function updateWeightTable() {
+            let html = '';
+            // W1 weights
+            html += `<tr><td>W1[0,0]</td><td><span id="w1_0_0">${network.W1[0][0].toFixed(6)}</span></td></tr>`;
+            html += `<tr><td>W1[0,1]</td><td><span id="w1_0_1">${network.W1[0][1].toFixed(6)}</span></td></tr>`;
+            html += `<tr><td>W1[1,0]</td><td><span id="w1_1_0">${network.W1[1][0].toFixed(6)}</span></td></tr>`;
+            html += `<tr><td>W1[1,1]</td><td><span id="w1_1_1">${network.W1[1][1].toFixed(6)}</span></td></tr>`;
+            html += `<tr><td>b1[0]</td><td><span id="b1_0">${network.b1[0].toFixed(6)}</span></td></tr>`;
+            html += `<tr><td>b1[1]</td><td><span id="b1_1">${network.b1[1].toFixed(6)}</span></td></tr>`;
+            html += `<tr><td>W2[0,0]</td><td><span id="w2_0_0">${network.W2[0][0].toFixed(6)}</span></td></tr>`;
+            html += `<tr><td>W2[0,1]</td><td><span id="w2_0_1">${network.W2[0][1].toFixed(6)}</span></td></tr>`;
+            html += `<tr><td>b2[0]</td><td><span id="b2_0">${network.b2[0].toFixed(6)}</span></td></tr>`;
+            document.getElementById('weightTable').innerHTML = html;
+        }
+        
+        function displayActivations() {
+            if (state.selectedSamples.length === 0) return;
+            
+            let sample = trainingData[state.selectedSamples[0]];
+            let acts = forward(sample.input);
+            state.activations = acts;
+            
+            // Update metrics
+            document.getElementById('target').textContent = sample.target.toFixed(2);
+            document.getElementById('prediction').textContent = acts.a2.toFixed(6);
+            
+            let loss = calculateLoss(acts.a2, sample.target, state.lossFunction);
+            document.getElementById('loss').textContent = loss.toFixed(6);
+            
+            let avgLoss = state.losses.length > 0 ? 
+                state.losses.reduce((a,b) => a+b) / state.losses.length : 0;
+            document.getElementById('avgLoss').textContent = avgLoss.toFixed(6);
+            
+            // Update network visualization
+            updateNetworkVizSVG(acts);
+            
+            // Update calculations
+            updateForwardCalcs(sample, acts);
+            updateBackwardCalcs(sample, acts);
+            updateWeightTable();
+        }
+        
+        function updateNetworkVizSVG(acts) {
+            let svg = document.getElementById('networkSVG');
+            svg.innerHTML = ''; // Clear previous
+            
+            let width = svg.clientWidth || 800;
+            let height = svg.clientHeight || 400;
+            
+            let layerX = [width * 0.15, width * 0.5, width * 0.85];
+            let inputY = [height * 0.3, height * 0.7];
+            let hiddenY = [height * 0.3, height * 0.7];
+            let outputY = [height * 0.5];
+            
+            // Helper to create line with weight label
+            function drawConnection(x1, y1, x2, y2, weight, isOutput = false) {
+                // Draw line
+                let line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                
+                // Color based on weight magnitude and sign
+                let absWeight = Math.abs(weight);
+                let hue = weight > 0 ? 120 : 0; // Green for positive, red for negative
+                let saturation = Math.min(100, absWeight * 100);
+                let lightness = 50 - saturation / 4;
+                
+                line.setAttribute('stroke', `hsl(${hue}, ${saturation}%, ${lightness}%)`);
+                line.setAttribute('stroke-width', 1 + Math.min(3, absWeight * 2));
+                line.setAttribute('opacity', 0.6 + Math.min(0.4, absWeight * 0.2));
+                svg.appendChild(line);
+                
+                // Add weight label
+                let midX = (x1 + x2) / 2;
+                let midY = (y1 + y2) / 2;
+                
+                let text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', midX);
+                text.setAttribute('y', midY);
+                text.setAttribute('font-size', '11');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', 'white');
+                text.setAttribute('stroke', 'black');
+                text.setAttribute('stroke-width', '0.3');
+                text.textContent = weight.toFixed(3);
+                
+                // Background rect for text
+                let rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', midX - 25);
+                rect.setAttribute('y', midY - 10);
+                rect.setAttribute('width', 50);
+                rect.setAttribute('height', 20);
+                rect.setAttribute('fill', '#333');
+                rect.setAttribute('opacity', 0.7);
+                rect.setAttribute('rx', 3);
+                svg.appendChild(rect);
+                svg.appendChild(text);
+            }
+            
+            // Draw connections: input -> hidden
+            for (let i = 0; i < 2; i++) {
+                for (let j = 0; j < 2; j++) {
+                    drawConnection(layerX[0], inputY[i], layerX[1], hiddenY[j], network.W1[i][j]);
+                }
+            }
+            
+            // Draw connections: hidden -> output
+            for (let i = 0; i < 2; i++) {
+                drawConnection(layerX[1], hiddenY[i], layerX[2], outputY[0], network.W2[0][i], true);
+            }
+            
+            // Draw neurons with bias
+            function drawNeuron(cx, cy, value, label, color, biasValue = null) {
+                let circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', cx);
+                circle.setAttribute('cy', cy);
+                circle.setAttribute('r', 30);
+                circle.setAttribute('fill', color);
+                circle.setAttribute('stroke', '#333');
+                circle.setAttribute('stroke-width', 2);
+                circle.setAttribute('opacity', 0.9);
+                svg.appendChild(circle);
+                
+                // Value text
+                let text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', cx);
+                text.setAttribute('y', cy + 2);
+                text.setAttribute('font-size', '13');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', 'white');
+                text.textContent = typeof value === 'number' ? value.toFixed(3) : value;
+                svg.appendChild(text);
+                
+                // Label
+                let labelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                labelText.setAttribute('x', cx);
+                labelText.setAttribute('y', cy + 50);
+                labelText.setAttribute('font-size', '11');
+                labelText.setAttribute('text-anchor', 'middle');
+                labelText.setAttribute('fill', '#333');
+                labelText.setAttribute('font-weight', 'bold');
+                labelText.textContent = label;
+                svg.appendChild(labelText);
+                
+                // Bias display (if exists)
+                if (biasValue !== null) {
+                    // Bias box below neuron
+                    let biasBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    biasBg.setAttribute('x', cx - 22);
+                    biasBg.setAttribute('y', cy + 35);
+                    biasBg.setAttribute('width', 44);
+                    biasBg.setAttribute('height', 12);
+                    biasBg.setAttribute('fill', '#FFF9C4');
+                    biasBg.setAttribute('stroke', '#F57F17');
+                    biasBg.setAttribute('stroke-width', 1.5);
+                    biasBg.setAttribute('rx', 2);
+                    svg.appendChild(biasBg);
+                    
+                    // Bias label
+                    let biasLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    biasLabel.setAttribute('x', cx - 12);
+                    biasLabel.setAttribute('y', cy + 43);
+                    biasLabel.setAttribute('font-size', '9');
+                    biasLabel.setAttribute('font-weight', 'bold');
+                    biasLabel.setAttribute('text-anchor', 'middle');
+                    biasLabel.setAttribute('fill', '#F57F17');
+                    biasLabel.textContent = 'b:';
+                    svg.appendChild(biasLabel);
+                    
+                    // Bias value
+                    let biasVal = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    biasVal.setAttribute('x', cx + 10);
+                    biasVal.setAttribute('y', cy + 43);
+                    biasVal.setAttribute('font-size', '9');
+                    biasVal.setAttribute('font-weight', 'bold');
+                    biasVal.setAttribute('text-anchor', 'middle');
+                    biasVal.setAttribute('fill', '#F57F17');
+                    biasVal.textContent = biasValue.toFixed(3);
+                    svg.appendChild(biasVal);
+                }
+            }
+            
+            // Input neurons (no bias)
+            drawNeuron(layerX[0], inputY[0], state.activations.input[0], 'x₀', '#4CAF50');
+            drawNeuron(layerX[0], inputY[1], state.activations.input[1], 'x₁', '#4CAF50');
+            
+            // Hidden neurons (with bias)
+            drawNeuron(layerX[1], hiddenY[0], acts.a1[0], 'h₀', '#2196F3', network.b1[0]);
+            drawNeuron(layerX[1], hiddenY[1], acts.a1[1], 'h₁', '#2196F3', network.b1[1]);
+            
+            // Output neuron (with bias)
+            drawNeuron(layerX[2], outputY[0], acts.a2, 'out', '#FF9800', network.b2[0]);
+            
+            // Layer labels
+            let hiddenActName = state.hiddenActivation.charAt(0).toUpperCase() + state.hiddenActivation.slice(1);
+            let outputActName = state.outputActivation.charAt(0).toUpperCase() + state.outputActivation.slice(1);
+            let layers = ['Input', `Hidden (${hiddenActName})`, `Output (${outputActName})`];
+            for (let i = 0; i < 3; i++) {
+                let text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', layerX[i]);
+                text.setAttribute('y', 25);
+                text.setAttribute('font-size', '14');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', '#333');
+                text.textContent = layers[i];
+                svg.appendChild(text);
+            }
+            
+            // Legend
+            let legendY = height - 30;
+            let legendX = 20;
+            
+            // Weight legend
+            let wLegendBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            wLegendBg.setAttribute('x', legendX);
+            wLegendBg.setAttribute('y', legendY - 5);
+            wLegendBg.setAttribute('width', 140);
+            wLegendBg.setAttribute('height', 25);
+            wLegendBg.setAttribute('fill', '#f5f5f5');
+            wLegendBg.setAttribute('stroke', '#999');
+            wLegendBg.setAttribute('stroke-width', 1);
+            wLegendBg.setAttribute('rx', 3);
+            svg.appendChild(wLegendBg);
+            
+            let wLegendText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            wLegendText.setAttribute('x', legendX + 70);
+            wLegendText.setAttribute('y', legendY + 12);
+            wLegendText.setAttribute('font-size', '11');
+            wLegendText.setAttribute('text-anchor', 'middle');
+            wLegendText.setAttribute('font-weight', 'bold');
+            wLegendText.setAttribute('fill', '#333');
+            wLegendText.textContent = '🟢 Green = +ve Weights';
+            svg.appendChild(wLegendText);
+            
+            // Bias legend
+            let bLegendBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bLegendBg.setAttribute('x', legendX + 150);
+            bLegendBg.setAttribute('y', legendY - 5);
+            bLegendBg.setAttribute('width', 140);
+            bLegendBg.setAttribute('height', 25);
+            bLegendBg.setAttribute('fill', '#FFF9C4');
+            bLegendBg.setAttribute('stroke', '#F57F17');
+            bLegendBg.setAttribute('stroke-width', 1.5);
+            bLegendBg.setAttribute('rx', 3);
+            svg.appendChild(bLegendBg);
+            
+            let bLegendText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            bLegendText.setAttribute('x', legendX + 220);
+            bLegendText.setAttribute('y', legendY + 12);
+            bLegendText.setAttribute('font-size', '11');
+            bLegendText.setAttribute('text-anchor', 'middle');
+            bLegendText.setAttribute('font-weight', 'bold');
+            bLegendText.setAttribute('fill', '#F57F17');
+            bLegendText.textContent = 'Yellow Box = Bias Term';
+            svg.appendChild(bLegendText);
+        }
+        
+        function updateForwardCalcs(sample, acts) {
+            let {input, z1, a1, z2, a2} = acts;
+            let target = sample.target;
+            let loss = calculateLoss(a2, target, state.lossFunction);
+            
+            // Get activation function names
+            let hiddenActName = getActivationName(state.hiddenActivation);
+            let outputActName = getActivationName(state.outputActivation);
+            let lossFuncName = getLossFunctionName(state.lossFunction);
+            
+            // Loss formula based on selected loss function
+            let lossFormula = '';
+            switch(state.lossFunction) {
+                case 'bce':
+                    lossFormula = `L = -[${target}·log(${a2.toFixed(6)}) + (1-${target})·log(${(1-a2).toFixed(6)})]`;
+                    break;
+                case 'mse':
+                    lossFormula = `L = (${a2.toFixed(6)} - ${target})² = ${((a2 - target) * (a2 - target)).toFixed(6)}`;
+                    break;
+                case 'mae':
+                    lossFormula = `L = |${a2.toFixed(6)} - ${target}| = ${Math.abs(a2 - target).toFixed(6)}`;
+                    break;
+                case 'huber':
+                    let delta = 1.0;
+                    let diff = Math.abs(a2 - target);
+                    lossFormula = diff <= delta ? 
+                        `L = 0.5·(${diff.toFixed(6)})² = ${(0.5 * diff * diff).toFixed(6)}` :
+                        `L = ${delta}·(${diff.toFixed(6)} - 0.5·${delta}) = ${(delta * (diff - 0.5 * delta)).toFixed(6)}`;
+                    break;
+            }
+            
+            let html = `
+                <div class="calculation-step">
+                    <span class="calculation-label">Input Vector (x):</span>
+                    x = [${input[0]}, ${input[1]}]
+                </div>
+                
+                <div class="calculation-step">
+                    <span class="calculation-label">Hidden Layer Computation (z₁ = x·W₁ + b₁):</span>
+                    z₁[0] = ${input[0]}×${network.W1[0][0].toFixed(6)} + ${input[1]}×${network.W1[1][0].toFixed(6)} + ${network.b1[0].toFixed(6)}<br>
+                    z₁[0] = ${(input[0]*network.W1[0][0] + input[1]*network.W1[1][0]).toFixed(6)} + ${network.b1[0].toFixed(6)} = <span class="calculation-value">${z1[0].toFixed(6)}</span><br><br>
+                    z₁[1] = ${input[0]}×${network.W1[0][1].toFixed(6)} + ${input[1]}×${network.W1[1][1].toFixed(6)} + ${network.b1[1].toFixed(6)}<br>
+                    z₁[1] = ${(input[0]*network.W1[0][1] + input[1]*network.W1[1][1]).toFixed(6)} + ${network.b1[1].toFixed(6)} = <span class="calculation-value">${z1[1].toFixed(6)}</span>
+                </div>
+                
+                <div class="calculation-step">
+                    <span class="calculation-label">Hidden Layer Activation (a₁ = ${hiddenActName}):</span>
+                    a₁[0] = ${hiddenActName.split('(')[0].toLowerCase()}(${z1[0].toFixed(6)}) = <span class="calculation-value">${a1[0].toFixed(6)}</span><br>
+                    a₁[1] = ${hiddenActName.split('(')[0].toLowerCase()}(${z1[1].toFixed(6)}) = <span class="calculation-value">${a1[1].toFixed(6)}</span>
+                </div>
+                
+                <div class="calculation-step">
+                    <span class="calculation-label">Output Layer Computation (z₂ = a₁·W₂ + b₂):</span>
+                    z₂ = ${a1[0].toFixed(6)}×${network.W2[0][0].toFixed(6)} + ${a1[1].toFixed(6)}×${network.W2[0][1].toFixed(6)} + ${network.b2[0].toFixed(6)}<br>
+                    z₂ = ${(a1[0]*network.W2[0][0] + a1[1]*network.W2[0][1]).toFixed(6)} + ${network.b2[0].toFixed(6)} = <span class="calculation-value">${z2.toFixed(6)}</span>
+                </div>
+                
+                <div class="calculation-step">
+                    <span class="calculation-label">Output Activation (a₂ = ${outputActName}):</span>
+                    a₂ = ${outputActName.split('(')[0].toLowerCase()}(${z2.toFixed(6)}) = <span class="calculation-value">${a2.toFixed(6)}</span>
+                </div>
+                
+                <div class="calculation-step">
+                    <span class="calculation-label">Loss (${lossFuncName}):</span>
+                    ${lossFormula}<br>
+                    L = <span class="calculation-value">${loss.toFixed(6)}</span>
+                </div>
+            `;
+            document.getElementById('forwardCalcs').innerHTML = html;
+        }
+        
+        function updateBackwardCalcs(sample, acts) {
+            let {input, a1, z1, a2} = acts;
+            let target = sample.target;
+            let gradients = backward(sample, acts);
+            
+            // Get loss gradient formula
+            let lossGradFormula = '';
+            switch(state.lossFunction) {
+                case 'bce':
+                    lossGradFormula = `a₂ - target = ${a2.toFixed(6)} - ${target}`;
+                    break;
+                case 'mse':
+                    lossGradFormula = `2(a₂ - target) = 2(${a2.toFixed(6)} - ${target})`;
+                    break;
+                case 'mae':
+                    lossGradFormula = `sign(a₂ - target) = sign(${(a2-target).toFixed(6)})`;
+                    break;
+                case 'huber':
+                    lossGradFormula = `huber_grad(${a2.toFixed(6)}, ${target})`;
+                    break;
+            }
+            
+            // Get activation derivative formula
+            let activationGradFormula = '';
+            let da2_dz2_name = '';
+            switch(state.outputActivation) {
+                case 'sigmoid':
+                    activationGradFormula = `a₂·(1-a₂) = ${a2.toFixed(6)}·${(1-a2).toFixed(6)}`;
+                    da2_dz2_name = 'Sigmoid Gradient';
+                    break;
+                case 'tanh':
+                    activationGradFormula = `1 - a₂² = 1 - ${(a2*a2).toFixed(6)}`;
+                    da2_dz2_name = 'Tanh Gradient';
+                    break;
+                case 'relu':
+                    activationGradFormula = `1 if z₂ > 0 else 0`;
+                    da2_dz2_name = 'ReLU Gradient';
+                    break;
+                case 'linear':
+                    activationGradFormula = `1`;
+                    da2_dz2_name = 'Linear Gradient';
+                    break;
+            }
+            
+            let hiddenActName = state.hiddenActivation.charAt(0).toUpperCase() + state.hiddenActivation.slice(1);
+            let hiddenDerivName = hiddenActName + ' Gradient';
+            
+            let html = `
+                <div class="calculation-step">
+                    <span class="calculation-label">Step 1: Loss Gradient (dL/da₂)</span>
+                    dL/da₂ = ${lossGradFormula} = <span class="calculation-value">${gradients.dL_da2.toFixed(6)}</span>
+                </div>
+                
+                <div class="calculation-step">
+                    <span class="calculation-label">Step 2: ${da2_dz2_name}</span>
+                    da₂/dz₂ = ${activationGradFormula} = <span class="calculation-value">${gradients.da2_dz2.toFixed(6)}</span>
+                </div>
+                
+                <div class="calculation-step">
+                    <span class="calculation-label">Step 3: Output Layer Gradient</span>
+                    dL/dz₂ = dL/da₂ · da₂/dz₂ = ${gradients.dL_da2.toFixed(6)} · ${gradients.da2_dz2.toFixed(6)} = <span class="calculation-value">${gradients.dL_dz2.toFixed(6)}</span>
+                </div>
+                
+                <div class="calculation-step">
+                    <span class="calculation-label">Step 4: W₂ Gradients (Chain Rule)</span>
+                    dL/dW₂[0] = dL/dz₂ · a₁[0] = ${gradients.dL_dz2.toFixed(6)} · ${a1[0].toFixed(6)} = <span class="calculation-value">${gradients.dL_dW2[0].toFixed(6)}</span><br>
+                    dL/dW₂[1] = dL/dz₂ · a₁[1] = ${gradients.dL_dz2.toFixed(6)} · ${a1[1].toFixed(6)} = <span class="calculation-value">${gradients.dL_dW2[1].toFixed(6)}</span>
+                </div>
+                
+                <div class="calculation-step">
+                    <span class="calculation-label">Step 5: b₂ Gradient</span>
+                    dL/db₂ = dL/dz₂ = <span class="calculation-value">${gradients.dL_db2.toFixed(6)}</span>
+                </div>
+                
+                <div class="gradient-chain">
+                    <strong>Hidden Layer Backpropagation (Chain Rule):</strong><br>
+                    dL/dz₁[0] = dL/dz₂ · dz₂/da₁[0] · da₁[0]/dz₁[0]<br>
+                    = ${gradients.dL_dz2.toFixed(6)} · ${network.W2[0][0].toFixed(6)} · ${applyActivationDerivative(z1[0], state.hiddenActivation, true).toFixed(6)}<br>
+                    = <span class="calculation-value">${gradients.dL_dz1[0].toFixed(6)}</span><br><br>
+                    dL/dz₁[1] = dL/dz₂ · dz₂/da₁[1] · da₁[1]/dz₁[1]<br>
+                    = ${gradients.dL_dz2.toFixed(6)} · ${network.W2[0][1].toFixed(6)} · ${applyActivationDerivative(z1[1], state.hiddenActivation, true).toFixed(6)}<br>
+                    = <span class="calculation-value">${gradients.dL_dz1[1].toFixed(6)}</span>
+                </div>
+                
+                <div class="calculation-step">
+                    <span class="calculation-label">Step 6: W₁ Gradients</span>
+                    dL/dW₁[0,0] = dL/dz₁[0] · x[0] = ${gradients.dL_dz1[0].toFixed(6)} · ${input[0]} = <span class="calculation-value">${gradients.dL_dW1[0][0].toFixed(6)}</span><br>
+                    dL/dW₁[0,1] = dL/dz₁[1] · x[0] = ${gradients.dL_dz1[1].toFixed(6)} · ${input[0]} = <span class="calculation-value">${gradients.dL_dW1[0][1].toFixed(6)}</span><br>
+                    dL/dW₁[1,0] = dL/dz₁[0] · x[1] = ${gradients.dL_dz1[0].toFixed(6)} · ${input[1]} = <span class="calculation-value">${gradients.dL_dW1[1][0].toFixed(6)}</span><br>
+                    dL/dW₁[1,1] = dL/dz₁[1] · x[1] = ${gradients.dL_dz1[1].toFixed(6)} · ${input[1]} = <span class="calculation-value">${gradients.dL_dW1[1][1].toFixed(6)}</span>
+                </div>
+                
+                <div class="calculation-step">
+                    <span class="calculation-label">Step 7: b₁ Gradients</span>
+                    dL/db₁[0] = dL/dz₁[0] = <span class="calculation-value">${gradients.dL_db1[0].toFixed(6)}</span><br>
+                    dL/db₁[1] = dL/dz₁[1] = <span class="calculation-value">${gradients.dL_db1[1].toFixed(6)}</span>
+                </div>
+            `;
+            document.getElementById('backwardCalcs').innerHTML = html;
+            state.lastGradients = gradients;
+        }
+        
+        function updateGradientDescentDisplay(weightUpdates) {
+            let lr = network.learningRate;
+            let html = '';
+            
+            let gradients = state.lastGradients;
+            
+            html += `<div class="gradient-update">
+                <strong>Learning Rate: α = ${lr.toFixed(4)}</strong><br>
+                <strong>Update Rule: θ_new = θ_old - α · ∇L</strong>
+            </div>`;
+            
+            html += `<div class="gradient-update">
+                <strong>W₁ Updates:</strong><br>
+                W₁[0,0]: <span class="gradient-before">${weightUpdates.old.W1[0][0].toFixed(6)}</span> - ${lr.toFixed(4)}·${gradients.dL_dW1[0][0].toFixed(6)} = <span class="gradient-after">${weightUpdates.new.W1[0][0].toFixed(6)}</span><br>
+                W₁[0,1]: <span class="gradient-before">${weightUpdates.old.W1[0][1].toFixed(6)}</span> - ${lr.toFixed(4)}·${gradients.dL_dW1[0][1].toFixed(6)} = <span class="gradient-after">${weightUpdates.new.W1[0][1].toFixed(6)}</span><br>
+                W₁[1,0]: <span class="gradient-before">${weightUpdates.old.W1[1][0].toFixed(6)}</span> - ${lr.toFixed(4)}·${gradients.dL_dW1[1][0].toFixed(6)} = <span class="gradient-after">${weightUpdates.new.W1[1][0].toFixed(6)}</span><br>
+                W₁[1,1]: <span class="gradient-before">${weightUpdates.old.W1[1][1].toFixed(6)}</span> - ${lr.toFixed(4)}·${gradients.dL_dW1[1][1].toFixed(6)} = <span class="gradient-after">${weightUpdates.new.W1[1][1].toFixed(6)}</span>
+            </div>`;
+            
+            html += `<div class="gradient-update">
+                <strong>b₁ Updates:</strong><br>
+                b₁[0]: <span class="gradient-before">${weightUpdates.old.b1[0].toFixed(6)}</span> - ${lr.toFixed(4)}·${gradients.dL_db1[0].toFixed(6)} = <span class="gradient-after">${weightUpdates.new.b1[0].toFixed(6)}</span><br>
+                b₁[1]: <span class="gradient-before">${weightUpdates.old.b1[1].toFixed(6)}</span> - ${lr.toFixed(4)}·${gradients.dL_db1[1].toFixed(6)} = <span class="gradient-after">${weightUpdates.new.b1[1].toFixed(6)}</span>
+            </div>`;
+            
+            html += `<div class="gradient-update">
+                <strong>W₂ Updates:</strong><br>
+                W₂[0,0]: <span class="gradient-before">${weightUpdates.old.W2[0][0].toFixed(6)}</span> - ${lr.toFixed(4)}·${gradients.dL_dW2[0].toFixed(6)} = <span class="gradient-after">${weightUpdates.new.W2[0][0].toFixed(6)}</span><br>
+                W₂[0,1]: <span class="gradient-before">${weightUpdates.old.W2[0][1].toFixed(6)}</span> - ${lr.toFixed(4)}·${gradients.dL_dW2[1].toFixed(6)} = <span class="gradient-after">${weightUpdates.new.W2[0][1].toFixed(6)}</span>
+            </div>`;
+            
+            html += `<div class="gradient-update">
+                <strong>b₂ Update:</strong><br>
+                b₂[0]: <span class="gradient-before">${weightUpdates.old.b2[0].toFixed(6)}</span> - ${lr.toFixed(4)}·${gradients.dL_db2.toFixed(6)} = <span class="gradient-after">${weightUpdates.new.b2[0].toFixed(6)}</span>
+            </div>`;
+            
+            document.getElementById('gradientCalcs').innerHTML = html;
+        }
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        function stepEpoch() {
+            let totalLoss = 0;
+            let batchGradients = null;
+            
+            for (let i = 0; i < trainingData.length; i++) {
+                let sample = trainingData[i];
+                let acts = forward(sample.input);
+                let loss = calculateLoss(acts.a2, sample.target, state.lossFunction);
+                totalLoss += loss;
+                
+                let gradients = backward(sample, acts);
+                let weightUpdates = updateWeights(gradients);
+                
+                // Store gradient info for first selected sample
+                if (state.selectedSamples.includes(i) && batchGradients === null) {
+                    batchGradients = {gradients, weightUpdates};
+                    updateGradientDescentDisplay(weightUpdates);
+                }
+            }
+            
+            state.epoch++;
+            let avgLoss = totalLoss / trainingData.length;
+            state.losses.push(avgLoss);
+            
+            document.getElementById('epochCount').textContent = state.epoch;
+            displayActivations();
+            updateChart();
+        }
+        
+        function trainAuto() {
+            if (state.isTraining) return;
+            state.isTraining = true;
+            
+            let maxEpochs = parseInt(document.getElementById('epochInput').value) || 100;
+            
+            function trainStep() {
+                if (!state.isTraining || state.epoch >= maxEpochs) {
+                    state.isTraining = false;
+                    return;
+                }
+                
+                stepEpoch();
+                requestAnimationFrame(trainStep);
+            }
+            
+            trainStep();
+        }
+        
+        function trainToConvergence() {
+            if (state.isTraining) return;
+            state.isTraining = true;
+            
+            let lossThreshold = parseFloat(document.getElementById('lossThreshold').value) || 0.01;
+            let maxIter = parseInt(document.getElementById('maxIterInput').value) || 1000;
+            let startEpoch = state.epoch;
+            
+            function trainStep() {
+                if (!state.isTraining) {
+                    state.isTraining = false;
+                    return;
+                }
+                
+                stepEpoch();
+                
+                let currentLoss = state.losses[state.losses.length - 1] || Infinity;
+                let epochsSinceStart = state.epoch - startEpoch;
+                
+                // Check convergence criteria
+                if (currentLoss <= lossThreshold) {
+                    state.isTraining = false;
+                    alert(`Converged! Loss: ${currentLoss.toFixed(6)} at epoch ${state.epoch}`);
+                    return;
+                }
+                
+                if (epochsSinceStart >= maxIter) {
+                    state.isTraining = false;
+                    alert(`Max iterations (${maxIter}) reached. Final loss: ${currentLoss.toFixed(6)}`);
+                    return;
+                }
+                
+                requestAnimationFrame(trainStep);
+            }
+            
+            trainStep();
+        }
+        
+        function stopTraining() {
+            state.isTraining = false;
+        }
+        
+        function updateActivationFunction() {
+            state.hiddenActivation = document.getElementById('hiddenActivation').value;
+            state.outputActivation = document.getElementById('outputActivation').value;
+            displayActivations();
+        }
+        
+        function updateLossFunction() {
+            state.lossFunction = document.getElementById('lossFunction').value;
+            displayActivations();
+        }
+        
+        function toggleSample(idx) {
+            if (state.selectedSamples.includes(idx)) {
+                // Deselect
+                state.selectedSamples = state.selectedSamples.filter(i => i !== idx);
+            } else {
+                // Select if batch size allows
+                if (state.selectedSamples.length < state.batchSize) {
+                    state.selectedSamples.push(idx);
+                } else {
+                    alert(`Cannot select more than ${state.batchSize} sample(s) for batch size ${state.batchSize}`);
+                    return;
+                }
+            }
+            updateSampleButtons();
+            if (state.selectedSamples.length > 0) {
+                displayActivations();
+            }
+        }
+        
+        function applyData() {
+            let numInstances = trainingData.length;
+            
+            for (let i = 0; i < numInstances; i++) {
+                let x1 = parseFloat(document.getElementById(`input${i}_0`).value);
+                let x2 = parseFloat(document.getElementById(`input${i}_1`).value);
+                let target = parseFloat(document.getElementById(`target${i}`).value);
+                
+                if (!isNaN(x1) && !isNaN(x2) && !isNaN(target)) {
+                    trainingData[i] = {input: [x1, x2], target: target};
+                }
+            }
+            
+            network.learningRate = parseFloat(document.getElementById('lrInput').value) || 0.1;
+            state.batchSize = parseInt(document.getElementById('batchSizeInput').value) || 1;
+            state.selectedSamples = [0];
+            
+            document.getElementById('batchSizeDisplay').textContent = state.batchSize;
+            document.getElementById('maxBatchDisplay').textContent = Math.min(state.batchSize, numInstances);
+            
+            updateSampleButtons();
+            resetNetwork();
+        }
+        
+        function resetToDefault() {
+            trainingData = [
+                {input: [0, 1], target: 0},
+                {input: [1, 0], target: 1},
+                {input: [1, 1], target: 1}
+            ];
+            network.learningRate = 0.1;
+            state.batchSize = 1;
+            state.selectedSamples = [0];
+            document.getElementById('numInstances').value = 3;
+            document.getElementById('lrInput').value = 0.1;
+            document.getElementById('batchSizeInput').value = 1;
+            document.getElementById('batchSizeInput').max = 3;
+            document.getElementById('epochInput').value = 10;
+            document.getElementById('batchSizeDisplay').textContent = 1;
+            document.getElementById('maxBatchDisplay').textContent = 1;
+            initializeUI();
+            resetNetwork();
+        }
+        
+        function resetNetwork() {
+            network = {
+                W1: [[1, 1], [1, 1]],
+                b1: [0, 0],
+                W2: [[1, 1]],
+                b2: [0],
+                learningRate: parseFloat(document.getElementById('lrInput').value) || 0.1
+            };
+            let batchSize = parseInt(document.getElementById('batchSizeInput').value) || 1;
+            state = {
+                selectedSamples: [0],
+                batchSize: batchSize,
+                epoch: 0,
+                losses: [],
+                isTraining: false,
+                activations: null,
+                lastGradients: null,
+                hiddenActivation: document.getElementById('hiddenActivation').value || 'relu',
+                outputActivation: document.getElementById('outputActivation').value || 'sigmoid',
+                lossFunction: document.getElementById('lossFunction').value || 'bce'
+            };
+            document.getElementById('epochCount').textContent = '0';
+            updateSampleButtons();
+            updateWeightTable();
+            displayActivations();
+            updateChart();
+        }
+        
+        function updateChart() {
+            if (!chart) {
+                let ctx = document.getElementById('lossChart').getContext('2d');
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: state.losses.map((_, i) => i + 1),
+                        datasets: [{
+                            label: 'Average Loss per Epoch',
+                            data: state.losses,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: {font: {size: 12}}
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {callback: function(value) {return value.toFixed(2);}}
+                            }
+                        }
+                    }
+                });
+            } else {
+                chart.data.labels = state.losses.map((_, i) => i + 1);
+                chart.data.datasets[0].data = state.losses;
+                chart.update();
+            }
+        }
+        
+        // Initialize
+        initializeUI();
+    </script>
+</body>
+</html>
