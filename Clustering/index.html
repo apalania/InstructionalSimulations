@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ML Clustering Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --parchment: #f5efe0;
+  --parchment-dark: #ede4cc;
+  --ink: #2c1f0e;
+  --ink-light: #5c4a2a;
+  --terracotta: #c1440e;
+  --terracotta-light: #e8714a;
+  --amber: #d4820a;
+  --amber-light: #f0b84a;
+  --sage: #5a7a5a;
+  --cream: #faf6ec;
+  --border: rgba(92,74,42,0.18);
+  --shadow: rgba(44,31,14,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--parchment);color:var(--ink);font-family:'Source Serif 4',serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;}
+
+.header{padding:2.5rem 2rem 1.5rem;text-align:center;position:relative;border-bottom:2px solid var(--border);}
+.header-eyebrow{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);margin-bottom:.5rem;}
+.header h1{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:700;color:var(--ink);line-height:1.1;}
+.header h1 em{color:var(--terracotta);font-style:italic;}
+.header p{font-size:.95rem;color:var(--ink-light);margin-top:.5rem;font-style:italic;font-weight:300;}
+
+.tabs{display:flex;justify-content:center;gap:0;padding:1.2rem 2rem 0;position:relative;z-index:1;}
+.tab-btn{font-family:'Playfair Display',serif;font-size:1rem;padding:.7rem 2rem;background:none;border:2px solid var(--border);border-bottom:none;cursor:pointer;color:var(--ink-light);transition:all .2s;position:relative;top:2px;border-radius:6px 6px 0 0;}
+.tab-btn:first-child{border-right:none;}
+.tab-btn.active{background:var(--cream);color:var(--terracotta);border-color:var(--border);font-weight:600;z-index:2;}
+.tab-btn:hover:not(.active){background:var(--parchment-dark);color:var(--ink);}
+
+.tab-content{display:none;padding:2rem;max-width:1200px;margin:0 auto;position:relative;z-index:1;}
+.tab-content.active{display:block;}
+
+.lab-grid{display:grid;grid-template-columns:280px 1fr;gap:1.5rem;align-items:start;}
+@media(max-width:800px){.lab-grid{grid-template-columns:1fr;}}
+.right-col{display:flex;flex-direction:column;gap:1.2rem;}
+
+.panel{background:var(--cream);border:1.5px solid var(--border);border-radius:10px;padding:1.4rem;box-shadow:0 2px 12px var(--shadow);}
+.panel h3{font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;color:var(--terracotta);margin-bottom:1rem;padding-bottom:.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.4rem;}
+
+.control-group{margin-bottom:1rem;}
+.control-group label{display:block;font-size:.8rem;font-weight:600;color:var(--ink-light);margin-bottom:.35rem;font-family:'JetBrains Mono',monospace;letter-spacing:.05em;}
+.control-group .val{color:var(--terracotta);font-weight:500;}
+input[type=range]{width:100%;-webkit-appearance:none;height:4px;background:var(--parchment-dark);border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--terracotta);border-radius:50%;cursor:pointer;transition:transform .1s;}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.3);}
+select{width:100%;padding:.45rem .6rem;background:var(--parchment);border:1.5px solid var(--border);border-radius:5px;font-family:'Source Serif 4',serif;font-size:.85rem;color:var(--ink);cursor:pointer;outline:none;}
+select:focus{border-color:var(--terracotta);}
+
+.btn-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;}
+.btn{padding:.4rem .9rem;border:1.5px solid var(--border);border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:.75rem;cursor:pointer;transition:all .15s;background:var(--parchment);}
+.btn:hover{background:var(--parchment-dark);}
+.btn.primary{background:var(--terracotta);color:#fff;border-color:var(--terracotta);}
+.btn.primary:hover{background:#a3380b;}
+.btn.secondary{background:var(--amber);color:#fff;border-color:var(--amber);}
+.btn.secondary:hover{background:#b56e08;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+.canvas-wrap{position:relative;background:var(--cream);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 2px 12px var(--shadow);}
+canvas{display:block;width:100%;height:auto;}
+
+.phase-bar{display:flex;gap:.3rem;margin-bottom:.8rem;flex-wrap:wrap;}
+.phase-pip{flex:1;min-width:55px;padding:.3rem .4rem;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.65rem;text-align:center;background:var(--parchment-dark);color:var(--ink-light);border:1px solid var(--border);transition:all .3s;}
+.phase-pip.active{background:var(--terracotta);color:#fff;border-color:var(--terracotta);}
+.phase-pip.done{background:var(--sage);color:#fff;border-color:var(--sage);}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.5rem;}
+.stat-box{background:var(--parchment);border:1px solid var(--border);border-radius:6px;padding:.5rem .7rem;text-align:center;}
+.stat-box .sv{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:500;color:var(--terracotta);}
+.stat-box .sl{font-size:.68rem;color:var(--ink-light);margin-top:.1rem;}
+
+.callout{background:linear-gradient(135deg,#fdf6e3,#f8ead0);border-left:3px solid var(--amber);padding:.9rem 1rem;border-radius:0 6px 6px 0;margin-top:.8rem;font-size:.82rem;line-height:1.55;color:var(--ink-light);}
+.callout strong{color:var(--amber);font-family:'Playfair Display',serif;}
+
+.section-label{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--amber);margin-bottom:.5rem;}
+
+.linkage-guide{margin-top:.3rem;}
+.linkage-row{display:flex;align-items:flex-start;gap:.5rem;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.78rem;}
+.linkage-row:last-child{border-bottom:none;}
+.linkage-tag{font-family:'JetBrains Mono',monospace;font-size:.68rem;padding:.15rem .4rem;border-radius:3px;background:var(--parchment-dark);flex-shrink:0;margin-top:1px;}
+.linkage-desc{color:var(--ink-light);line-height:1.4;}
+
+.cluster-cards{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.5rem;}
+@media(max-width:900px){.cluster-cards{grid-template-columns:1fr;}}
+.cluster-card{border:1.5px solid var(--border);border-radius:7px;padding:.7rem .9rem;background:var(--parchment);position:relative;overflow:hidden;}
+.cluster-card h4{font-family:'Playfair Display',serif;font-size:.85rem;font-weight:600;margin-bottom:.3rem;}
+.cluster-card .cstats{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--ink-light);line-height:1.6;}
+
+.warn{font-size:.72rem;color:var(--terracotta);font-family:'JetBrains Mono',monospace;margin-top:.3rem;}
+#tooltip{position:fixed;background:var(--ink);color:var(--parchment);padding:.4rem .7rem;border-radius:5px;font-size:.75rem;font-family:'JetBrains Mono',monospace;pointer-events:none;z-index:1000;opacity:0;transition:opacity .15s;white-space:nowrap;}
+</style>
+</head>
+<body>
+<div id="tooltip"></div>
+
+<div class="header">
+  <div class="header-eyebrow">Interactive Machine Learning Laboratory</div>
+  <h1>The Art of <em>Clustering</em></h1>
+  <p>Unsupervised learning through animated, hands-on exploration</p>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('kmeans')">⊕ K-Means Clustering</button>
+  <button class="tab-btn" onclick="switchTab('agglo')">⊞ Agglomerative Clustering</button>
+</div>
+
+<!-- K-MEANS TAB -->
+<div class="tab-content active" id="tab-kmeans">
+  <div class="lab-grid">
+    <div>
+      <div class="panel">
+        <h3>⚙ Controls</h3>
+        <div class="control-group">
+          <label>Clusters k = <span class="val" id="k-val">3</span></label>
+          <input type="range" id="k-slider" min="1" max="6" value="3" oninput="document.getElementById('k-val').textContent=this.value">
+        </div>
+        <div class="control-group">
+          <label>Data points n = <span class="val" id="n-val">45</span></label>
+          <input type="range" id="n-slider" min="20" max="80" value="45" oninput="document.getElementById('n-val').textContent=this.value">
+        </div>
+        <div class="control-group">
+          <label>Initialization</label>
+          <select id="init-select">
+            <option value="kmeanspp">K-Means++ (smart)</option>
+            <option value="random">Random</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Speed</label>
+          <select id="speed-select">
+            <option value="900">Slow</option>
+            <option value="500" selected>Medium</option>
+            <option value="200">Fast</option>
+          </select>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" onclick="kmGenerate()">↺ New Data</button>
+          <button class="btn secondary" id="btn-play" onclick="kmPlay()">▶ Run</button>
+          <button class="btn" onclick="kmStep()">Step →</button>
+          <button class="btn" onclick="kmReset()">Reset</button>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:1rem;">
+        <h3>📊 Algorithm State</h3>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="sv" id="km-iter">0</div><div class="sl">Iteration</div></div>
+          <div class="stat-box"><div class="sv" id="km-wcss">—</div><div class="sl">WCSS</div></div>
+          <div class="stat-box"><div class="sv" id="km-changed">—</div><div class="sl">Changed</div></div>
+          <div class="stat-box"><div class="sv" id="km-status">Ready</div><div class="sl">Phase</div></div>
+        </div>
+        <div id="km-sizes" style="margin-top:.7rem;"></div>
+      </div>
+      <div class="panel" style="margin-top:1rem;">
+        <h3>💡 Theory</h3>
+        <div class="callout"><strong>K-Means</strong> partitions n points into k clusters by alternating:<br><br>1. <strong>Assign</strong> each point to its nearest centroid.<br>2. <strong>Update</strong> centroids as the mean of assigned points.<br><br>Convergence is guaranteed but may be a local minimum.</div>
+        <div class="callout" style="margin-top:.5rem;"><strong>K-Means++</strong> selects initial centroids with probability proportional to d², giving dramatically better results than random initialization.</div>
+      </div>
+    </div>
+    <div class="right-col">
+      <div>
+        <div class="section-label">Algorithm Phase</div>
+        <div class="phase-bar" id="phase-bar">
+          <div class="phase-pip active" id="ph-0">Init</div>
+          <div class="phase-pip" id="ph-1">Assign</div>
+          <div class="phase-pip" id="ph-2">Update</div>
+          <div class="phase-pip" id="ph-3">Check</div>
+          <div class="phase-pip" id="ph-4">Converged ✓</div>
+        </div>
+      </div>
+      <div class="canvas-wrap"><canvas id="km-canvas" width="700" height="460"></canvas></div>
+      <div>
+        <div class="section-label">Elbow Method — where does WCSS stop dropping sharply?</div>
+        <div class="canvas-wrap"><canvas id="elbow-canvas" width="700" height="190"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AGGLOMERATIVE TAB -->
+<div class="tab-content" id="tab-agglo">
+  <div class="lab-grid">
+    <div>
+      <div class="panel">
+        <h3>⚙ Controls</h3>
+        <div class="control-group">
+          <label>Linkage</label>
+          <select id="linkage-select" onchange="aggloRebuild()">
+            <option value="ward">Ward</option>
+            <option value="complete">Complete</option>
+            <option value="average">Average</option>
+            <option value="single">Single</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Distance metric</label>
+          <select id="metric-select" onchange="aggloRebuild()">
+            <option value="euclidean">Euclidean</option>
+            <option value="manhattan">Manhattan</option>
+          </select>
+          <div class="warn" id="ward-warn" style="display:none">⚠ Ward requires Euclidean</div>
+        </div>
+        <div class="control-group">
+          <label>Cut height = <span class="val" id="cut-val">—</span></label>
+          <input type="range" id="cut-slider" min="0" max="100" value="60" oninput="aggloUpdateCut(this.value)">
+        </div>
+        <div class="control-group">
+          <label>Points n = <span class="val" id="ag-n-val">28</span></label>
+          <input type="range" id="ag-n-slider" min="12" max="40" value="28" oninput="document.getElementById('ag-n-val').textContent=this.value;aggloGenerate()">
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" onclick="aggloGenerate()">↺ New Data</button>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:1rem;">
+        <h3>🔗 Linkage Guide</h3>
+        <div class="linkage-guide">
+          <div class="linkage-row"><span class="linkage-tag">Ward</span><span class="linkage-desc">Minimizes within-cluster variance. Compact, balanced clusters. Best general-purpose.</span></div>
+          <div class="linkage-row"><span class="linkage-tag">Complete</span><span class="linkage-desc">Max inter-cluster distance. Avoids chaining; sensitive to outliers.</span></div>
+          <div class="linkage-row"><span class="linkage-tag">Average</span><span class="linkage-desc">Mean pairwise distance. Balanced; less outlier-sensitive than complete.</span></div>
+          <div class="linkage-row"><span class="linkage-tag">Single</span><span class="linkage-desc">Min distance (nearest-neighbor). Chaining-prone; good for elongated clusters.</span></div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:1rem;">
+        <h3>💡 Theory</h3>
+        <div class="callout"><strong>Agglomerative</strong> clustering starts with each point as its own cluster, then greedily merges the two closest, recording heights to build a <em>dendrogram</em>. Cut at height h → clusters existing before any merge at h or above.</div>
+      </div>
+    </div>
+    <div class="right-col">
+      <div>
+        <div class="section-label">Dendrogram — drag the cut line (terracotta dash)</div>
+        <div class="canvas-wrap"><canvas id="dendro-canvas" width="700" height="250"></canvas></div>
+      </div>
+      <div>
+        <div class="section-label">Customer Scatter — colored by cluster</div>
+        <div class="canvas-wrap"><canvas id="agglo-scatter" width="700" height="290"></canvas></div>
+      </div>
+      <div>
+        <div class="section-label">Cluster Profiles</div>
+        <div id="cluster-cards" class="cluster-cards"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PI2=Math.PI*2;
+const COLORS=['#c1440e','#2a6496','#5a7a5a','#8b5e3c','#7a4a8a','#b8860b'];
+const LCOLORS=['#f5a98a','#aad0ee','#b0ccb0','#d4a882','#d0a0e0','#f0d070'];
+
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+function gauss(mu,sig){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return mu+sig*Math.sqrt(-2*Math.log(u))*Math.cos(PI2*v);}
+function meanArr(a){return a.reduce((s,x)=>s+x,0)/a.length;}
+function eucl(a,b){return Math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2);}
+function manh(a,b){return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1]);}
+function dFunc(metric){return metric==='manhattan'?manh:eucl;}
+
+const TT=document.getElementById('tooltip');
+function showTip(x,y,t){TT.style.left=(x+14)+'px';TT.style.top=(y-8)+'px';TT.textContent=t;TT.style.opacity='1';}
+function hideTip(){TT.style.opacity='0';}
+
+function switchTab(id){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['kmeans','agglo'][i]===id));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='agglo'&&!aggloBuilt)aggloGenerate();
+}
+
+function hexRgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+
+/* ===== K-MEANS ===== */
+let KP=[],KC=[],KA=[],KPhase=0,KIter=0,KTimer=null,KBusy=false;
+const kCanvas=document.getElementById('km-canvas');
+const kCtx=kCanvas.getContext('2d');
+
+function kmGenerate(){
+  kmStop();
+  const n=+document.getElementById('n-slider').value;
+  KP=[];
+  for(let i=0;i<Math.round(n*.38);i++) KP.push([clamp(gauss(7.5,1.0),1,10),clamp(gauss(7.0,.7),1,10)]);
+  for(let i=0;i<Math.round(n*.35);i++) KP.push([clamp(gauss(2.5,.9),.5,6),clamp(gauss(4.5,.9),2,8)]);
+  for(let i=0;i<Math.round(n*.27);i++) KP.push([clamp(gauss(5.0,1.0),2,8),clamp(gauss(4.0,.8),2,7)]);
+  KP=KP.sort(()=>Math.random()-.5);
+  kmReset();
+  drawElbow();
+}
+
+function kmInitCentroids(){
+  const k=+document.getElementById('k-slider').value;
+  const init=document.getElementById('init-select').value;
+  KC=[];
+  if(init==='kmeanspp'){
+    KC.push([...KP[Math.floor(Math.random()*KP.length)]]);
+    while(KC.length<k){
+      const ds=KP.map(p=>{let m=Infinity;KC.forEach(c=>{const d=eucl(p,c);if(d<m)m=d;});return m*m;});
+      const tot=ds.reduce((a,b)=>a+b,0);
+      let r=Math.random()*tot;
+      for(let i=0;i<ds.length;i++){r-=ds[i];if(r<=0){KC.push([...KP[i]]);break;}}
+      if(KC.length<k) KC.push([...KP[Math.floor(Math.random()*KP.length)]]);
+    }
+  } else {
+    [...Array(KP.length).keys()].sort(()=>Math.random()-.5).slice(0,k).forEach(i=>KC.push([...KP[i]]));
+  }
+}
+
+function kmReset(){
+  kmStop();KC=[];KA=Array(KP.length).fill(-1);KPhase=0;KIter=0;
+  setPhase(0);updateKStats();kmInitCentroids();drawKm();
+}
+
+function setPhase(p){
+  for(let i=0;i<5;i++){
+    const el=document.getElementById('ph-'+i);
+    el.className='phase-pip'+(i===p?' active':i<p?' done':'');
+  }
+  const names=['Init','Assign','Update','Check','Conv'];
+  document.getElementById('km-status').textContent=names[Math.min(p,4)];
+}
+
+function assignStep(){
+  let ch=0;
+  KP.forEach((p,i)=>{let b=-1,bd=Infinity;KC.forEach((c,j)=>{const d=eucl(p,c);if(d<bd){bd=d;b=j;}});if(b!==KA[i])ch++;KA[i]=b;});
+  return ch;
+}
+function updateStep(){KC.forEach((c,j)=>{const ps=KP.filter((_,i)=>KA[i]===j);if(ps.length){c[0]=meanArr(ps.map(p=>p[0]));c[1]=meanArr(ps.map(p=>p[1]));}});}
+function wcssVal(){return KP.reduce((s,p,i)=>{const c=KC[KA[i]];return c?s+(p[0]-c[0])**2+(p[1]-c[1])**2:s;},0);}
+
+async function kmStep(){
+  if(KBusy||KPhase===5)return;
+  KBusy=true;
+  if(KPhase===0){assignStep();KPhase=1;KIter=1;setPhase(1);}
+  else if(KPhase===1||KPhase===3){updateStep();KPhase=2;setPhase(2);}
+  else if(KPhase===2){const ch=assignStep();KIter++;document.getElementById('km-changed').textContent=ch;KPhase=ch===0?4:3;setPhase(KPhase);}
+  else if(KPhase===4){KPhase=5;setPhase(4);}
+  updateKStats();drawKm();KBusy=false;
+}
+
+function kmPlay(){
+  if(KTimer){kmStop();return;}
+  document.getElementById('btn-play').textContent='⏸ Pause';
+  const spd=+document.getElementById('speed-select').value;
+  KTimer=setInterval(async()=>{if(KPhase>=4){kmStop();return;}await kmStep();},spd);
+}
+function kmStop(){if(KTimer){clearInterval(KTimer);KTimer=null;}document.getElementById('btn-play').textContent='▶ Run';}
+
+function updateKStats(){
+  document.getElementById('km-iter').textContent=KIter;
+  if(KA.some(a=>a>=0)){
+    document.getElementById('km-wcss').textContent=wcssVal().toFixed(1);
+    const sz=Array(KC.length).fill(0);KA.forEach(a=>{if(a>=0)sz[a]++;});
+    document.getElementById('km-sizes').innerHTML=sz.map((s,i)=>`<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.25rem;"><div style="width:8px;height:8px;border-radius:50%;background:${COLORS[i]};flex-shrink:0;"></div><span style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--ink-light)">Cluster ${i+1}: ${s} pts</span></div>`).join('');
+  }
+}
+
+function drawKm(){
+  const W=kCanvas.width,H=kCanvas.height;
+  const PL=50,PR=20,PT=25,PB=40;
+  const CW=W-PL-PR,CH=H-PT-PB;
+  kCtx.clearRect(0,0,W,H);
+
+  // Zone hints
+  const g1=kCtx.createLinearGradient(PL+CW*.5,PT,W,PT+CH*.45);
+  g1.addColorStop(0,'rgba(90,122,90,0.07)');g1.addColorStop(1,'rgba(90,122,90,0)');
+  kCtx.fillStyle=g1;kCtx.fillRect(PL+CW*.45,PT,CW*.55,CH*.55);
+  kCtx.font='italic 11px "Source Serif 4"';
+  kCtx.fillStyle='rgba(90,122,90,0.5)';kCtx.textAlign='right';kCtx.fillText('tends to pass ↗',W-PR-4,PT+22);
+  kCtx.fillStyle='rgba(193,68,14,0.35)';kCtx.textAlign='left';kCtx.fillText('tends to fail ↙',PL+4,PT+CH-10);
+  kCtx.textAlign='left';
+
+  // Grid
+  for(let v=0;v<=10;v+=2){
+    const x=PL+v/10*CW,y=PT+CH-v/10*CH;
+    kCtx.strokeStyle='rgba(92,74,42,0.07)';kCtx.lineWidth=1;
+    kCtx.beginPath();kCtx.moveTo(x,PT);kCtx.lineTo(x,PT+CH);kCtx.stroke();
+    kCtx.beginPath();kCtx.moveTo(PL,y);kCtx.lineTo(PL+CW,y);kCtx.stroke();
+    kCtx.fillStyle='rgba(92,74,42,0.4)';kCtx.font='9px JetBrains Mono';
+    kCtx.textAlign='center';kCtx.fillText(v,x,PT+CH+14);
+    kCtx.textAlign='right';kCtx.fillText(v,PL-5,y+4);
+  }
+  kCtx.textAlign='left';
+  kCtx.strokeStyle='rgba(92,74,42,0.3)';kCtx.lineWidth=1.5;
+  kCtx.beginPath();kCtx.moveTo(PL,PT);kCtx.lineTo(PL,PT+CH);kCtx.lineTo(PL+CW,PT+CH);kCtx.stroke();
+  kCtx.font='12px "Source Serif 4"';kCtx.fillStyle='rgba(92,74,42,0.65)';
+  kCtx.textAlign='center';kCtx.fillText('Hours Studied',PL+CW/2,H-5);
+  kCtx.save();kCtx.translate(13,PT+CH/2);kCtx.rotate(-Math.PI/2);kCtx.fillText('Sleep Hours',0,0);kCtx.restore();
+  kCtx.textAlign='left';
+
+  const px=v=>PL+clamp(v,0,10)/10*CW;
+  const py=v=>PT+CH-clamp(v,0,10)/10*CH;
+
+  // Voronoi background
+  if(KC.length>0&&KA.some(a=>a>=0)){
+    const id=kCtx.createImageData(W,H);
+    for(let x=0;x<W;x+=3)for(let y=0;y<H;y+=3){
+      const fx=(x-PL)/CW*10,fy=(1-(y-PT)/CH)*10;
+      if(fx<0||fx>10||fy<0||fy>10)continue;
+      let b=-1,bd=Infinity;
+      KC.forEach((c,j)=>{const d=eucl([fx,fy],c);if(d<bd){bd=d;b=j;}});
+      if(b<0)continue;
+      const [r,g,bl]=hexRgb(COLORS[b]);
+      for(let dx=0;dx<3;dx++)for(let dy=0;dy<3;dy++){const i2=4*((y+dy)*W+(x+dx));id.data[i2]=r;id.data[i2+1]=g;id.data[i2+2]=bl;id.data[i2+3]=26;}
+    }
+    kCtx.putImageData(id,0,0);
+  }
+
+  // Connection lines during assign phase
+  if(KPhase===1&&KA.some(a=>a>=0)){
+    KP.forEach((p,i)=>{
+      const c=KC[KA[i]];if(!c)return;
+      kCtx.strokeStyle=COLORS[KA[i]]+'40';kCtx.lineWidth=.8;
+      kCtx.beginPath();kCtx.moveTo(px(p[0]),py(p[1]));kCtx.lineTo(px(c[0]),py(c[1]));kCtx.stroke();
+    });
+  }
+
+  // Points
+  KP.forEach((p,i)=>{
+    const ci=KA[i],col=ci>=0?COLORS[ci]:'#aaa',lc=ci>=0?LCOLORS[ci]:'#ddd';
+    kCtx.beginPath();kCtx.arc(px(p[0]),py(p[1]),5.5,0,PI2);
+    kCtx.fillStyle=lc;kCtx.fill();kCtx.strokeStyle=col;kCtx.lineWidth=1.8;kCtx.stroke();
+  });
+
+  // Centroids
+  KC.forEach((c,j)=>{
+    const x=px(c[0]),y=py(c[1]);
+    kCtx.beginPath();kCtx.arc(x,y,14,0,PI2);kCtx.strokeStyle=COLORS[j]+'44';kCtx.lineWidth=2;kCtx.stroke();
+    drawStar(kCtx,x,y,10,5,COLORS[j],KPhase===2?'white':COLORS[j]);
+    kCtx.font='bold 9px JetBrains Mono';kCtx.fillStyle='white';kCtx.textAlign='center';kCtx.fillText(j+1,x,y+3.5);kCtx.textAlign='left';
+  });
+}
+
+function drawStar(ctx,x,y,r,pts,stroke,fill){
+  const ir=r*.45;
+  ctx.beginPath();
+  for(let i=0;i<pts*2;i++){const a=i*Math.PI/pts-Math.PI/2,ri=i%2===0?r:ir;i===0?ctx.moveTo(x+ri*Math.cos(a),y+ri*Math.sin(a)):ctx.lineTo(x+ri*Math.cos(a),y+ri*Math.sin(a));}
+  ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=1.5;ctx.stroke();
+}
+
+function drawElbow(){
+  if(!KP.length)return;
+  const c=document.getElementById('elbow-canvas'),ctx=c.getContext('2d');
+  const W=c.width,H=c.height,PAD=45,TRIALS=5,MAXK=6;
+  ctx.clearRect(0,0,W,H);
+  const wArr=[];
+  for(let k=1;k<=MAXK;k++){
+    let mw=Infinity;
+    for(let t=0;t<TRIALS;t++){
+      const cents=initCents(KP,k);let asgn=Array(KP.length).fill(0);
+      for(let it=0;it<30;it++){
+        KP.forEach((p,i)=>{let b=0,bd=Infinity;cents.forEach((c2,j)=>{const d=eucl(p,c2);if(d<bd){bd=d;b=j;}});asgn[i]=b;});
+        for(let j=0;j<k;j++){const ps=KP.filter((_,i)=>asgn[i]===j);if(ps.length){cents[j][0]=meanArr(ps.map(p=>p[0]));cents[j][1]=meanArr(ps.map(p=>p[1]));}}
+      }
+      const w=KP.reduce((s,p,i)=>{const c2=cents[asgn[i]];return s+(p[0]-c2[0])**2+(p[1]-c2[1])**2;},0);
+      if(w<mw)mw=w;
+    }
+    wArr.push(mw);
+  }
+  const maxW=Math.max(...wArr),CW=W-PAD*2,CH=H-PAD*1.5;
+  ctx.strokeStyle='rgba(92,74,42,0.3)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(PAD,PAD);ctx.lineTo(PAD,PAD+CH);ctx.lineTo(PAD+CW,PAD+CH);ctx.stroke();
+  ctx.font='10px "Source Serif 4"';ctx.fillStyle='rgba(92,74,42,0.6)';ctx.textAlign='center';ctx.fillText('k',PAD+CW/2,H-4);
+  ctx.save();ctx.translate(11,PAD+CH/2);ctx.rotate(-Math.PI/2);ctx.fillText('WCSS',0,0);ctx.restore();
+  ctx.textAlign='left';
+
+  ctx.beginPath();
+  wArr.forEach((w,i)=>{const x=PAD+i/(MAXK-1)*CW,y=PAD+CH-(w/maxW)*CH;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.lineTo(PAD+CW,PAD+CH);ctx.lineTo(PAD,PAD+CH);ctx.closePath();ctx.fillStyle='rgba(193,68,14,0.07)';ctx.fill();
+  ctx.beginPath();
+  wArr.forEach((w,i)=>{const x=PAD+i/(MAXK-1)*CW,y=PAD+CH-(w/maxW)*CH;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.strokeStyle='#c1440e';ctx.lineWidth=2;ctx.stroke();
+
+  const elbow=findElbow(wArr);
+  wArr.forEach((w,i)=>{
+    const x=PAD+i/(MAXK-1)*CW,y=PAD+CH-(w/maxW)*CH;
+    ctx.beginPath();ctx.arc(x,y,5,0,PI2);ctx.fillStyle=i===elbow?'#c1440e':LCOLORS[0];ctx.fill();ctx.strokeStyle='#c1440e';ctx.lineWidth=2;ctx.stroke();
+    ctx.font='9px JetBrains Mono';ctx.fillStyle='rgba(92,74,42,0.55)';ctx.textAlign='center';ctx.fillText(i+1,x,PAD+CH+14);
+    if(i===elbow){ctx.fillStyle='#c1440e';ctx.font='bold 9px JetBrains Mono';ctx.fillText('← elbow',x+8,y-8);}
+  });
+}
+
+function initCents(pts,k){
+  const c=[[...pts[Math.floor(Math.random()*pts.length)]]];
+  while(c.length<k){
+    const ds=pts.map(p=>{let m=Infinity;c.forEach(cc=>{const d=eucl(p,cc);if(d<m)m=d;});return m*m;});
+    const tot=ds.reduce((a,b)=>a+b,0);let r=Math.random()*tot;
+    let added=false;
+    for(let i=0;i<ds.length;i++){r-=ds[i];if(r<=0){c.push([...pts[i]]);added=true;break;}}
+    if(!added)c.push([...pts[Math.floor(Math.random()*pts.length)]]);
+  }
+  return c;
+}
+
+function findElbow(v){
+  const n=v.length,y0=v[0],y1=v[n-1];
+  let mx=0,mi=0;
+  v.forEach((vv,i)=>{const num=Math.abs((y1-y0)*i-(n-1)*vv+(n-1)*y0);const den=Math.sqrt((y1-y0)**2+(n-1)**2);const d=num/den;if(d>mx){mx=d;mi=i;}});
+  return mi;
+}
+
+kCanvas.addEventListener('mousemove',e=>{
+  if(!KP.length){hideTip();return;}
+  const rb=kCanvas.getBoundingClientRect();
+  const sx=(e.clientX-rb.left)/rb.width*kCanvas.width,sy=(e.clientY-rb.top)/rb.height*kCanvas.height;
+  const PL=50,CW=kCanvas.width-70,CH=kCanvas.height-65;
+  let f=false;
+  KP.forEach((p,i)=>{const x=PL+p[0]/10*CW,y=25+CH-p[1]/10*CH;if(Math.hypot(sx-x,sy-y)<10){const ci=KA[i];showTip(e.clientX,e.clientY,`Study:${p[0].toFixed(1)}h  Sleep:${p[1].toFixed(1)}h${ci>=0?' → C'+(ci+1):'  (unassigned)'}`);f=true;}});
+  if(!f)hideTip();
+});
+kCanvas.addEventListener('mouseleave',hideTip);
+
+/* ===== AGGLOMERATIVE ===== */
+let aggloPoints=[],aggloMerges=[],aggloClusters=[],aggloMaxH=1,aggloBuilt=false;
+
+function aggloGenerate(){
+  const n=+document.getElementById('ag-n-slider').value;
+  aggloPoints=[];
+  for(let i=0;i<Math.round(n*.25);i++) aggloPoints.push([clamp(gauss(8.5,1.0),4,10),clamp(gauss(8.0,1.0),5,10),'VIP']);
+  for(let i=0;i<Math.round(n*.30);i++) aggloPoints.push([clamp(gauss(7.0,1.0),4,10),clamp(gauss(3.5,.9),1,6),'Regular']);
+  for(let i=0;i<Math.round(n*.20);i++) aggloPoints.push([clamp(gauss(2.5,.8),.5,5),clamp(gauss(7.5,1.0),5,10),'Occasional']);
+  for(let i=0;i<Math.round(n*.25);i++) aggloPoints.push([clamp(gauss(2.0,.9),.5,5),clamp(gauss(2.5,.8),.5,5),'Budget']);
+  aggloPoints=aggloPoints.sort(()=>Math.random()-.5);
+  aggloBuilt=true;
+  aggloRebuild();
+}
+
+function aggloRebuild(){
+  const lnk=document.getElementById('linkage-select').value;
+  const warn=document.getElementById('ward-warn');
+  if(lnk==='ward'){document.getElementById('metric-select').value='euclidean';warn.style.display='block';}
+  else warn.style.display='none';
+  const met=document.getElementById('metric-select').value;
+  if(!aggloPoints.length)return;
+  aggloMerges=buildDendrogram(aggloPoints,lnk,met);
+  aggloMaxH=aggloMerges.length?aggloMerges[aggloMerges.length-1].h:1;
+  aggloUpdateCut(document.getElementById('cut-slider').value);
+}
+
+function buildDendrogram(pts,linkage,metric){
+  const n=pts.length,df=dFunc(metric);
+  let clusters=pts.map((_,i)=>({ids:[i],idx:i}));
+  const merges=[];
+  // Precompute pairwise
+  const dm={};
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++) dm[`${i}_${j}`]=df(pts[i],pts[j]);
+
+  const pairD=(a,b)=>{
+    if(linkage==='single'){let m=Infinity;a.ids.forEach(i=>b.ids.forEach(j=>{const d=dm[`${Math.min(i,j)}_${Math.max(i,j)}`];if(d<m)m=d;}));return m;}
+    if(linkage==='complete'){let m=0;a.ids.forEach(i=>b.ids.forEach(j=>{const d=dm[`${Math.min(i,j)}_${Math.max(i,j)}`];if(d>m)m=d;}));return m;}
+    if(linkage==='average'){let s=0,cnt=0;a.ids.forEach(i=>b.ids.forEach(j=>{s+=dm[`${Math.min(i,j)}_${Math.max(i,j)}`];cnt++;}));return s/cnt;}
+    // ward
+    const na=a.ids.length,nb=b.ids.length;
+    const ca=[meanArr(a.ids.map(i=>pts[i][0])),meanArr(a.ids.map(i=>pts[i][1]))];
+    const cb=[meanArr(b.ids.map(i=>pts[i][0])),meanArr(b.ids.map(i=>pts[i][1]))];
+    return Math.sqrt((na*nb)/(na+nb))*eucl(ca,cb);
+  };
+
+  let nid=n;
+  while(clusters.length>1){
+    let bi=-1,bj=-1,bd=Infinity;
+    for(let i=0;i<clusters.length;i++)for(let j=i+1;j<clusters.length;j++){const d=pairD(clusters[i],clusters[j]);if(d<bd){bd=d;bi=i;bj=j;}}
+    const L=clusters[bi],R=clusters[bj];
+    merges.push({left:L.idx,right:R.idx,h:bd,n:L.ids.length+R.ids.length});
+    clusters=[...clusters.filter((_,k)=>k!==bi&&k!==bj),{ids:[...L.ids,...R.ids],idx:nid++}];
+  }
+  return merges;
+}
+
+function getClusters(pts,merges,cutH){
+  const n=pts.length,par=Array.from({length:n+merges.length},(_,i)=>i);
+  function find(x){while(par[x]!==x){par[x]=par[par[x]];x=par[x];}return x;}
+  let nid=n;
+  merges.forEach(m=>{if(m.h<=cutH){par[find(m.left)]=nid;par[find(m.right)]=nid;}nid++;});
+  const g={};
+  for(let i=0;i<n;i++){const r=find(i);if(!g[r])g[r]=[];g[r].push(i);}
+  return Object.values(g);
+}
+
+function aggloUpdateCut(pct){
+  const cutH=aggloMaxH*(pct/100);
+  document.getElementById('cut-val').textContent=cutH.toFixed(2);
+  aggloClusters=getClusters(aggloPoints,aggloMerges,cutH);
+  drawDendro(cutH);
+  drawAggloScatter();
+  renderCards();
+}
+
+/* Leaf ordering for clean dendrogram */
+function leafOrder(merges,n){
+  const children={};
+  let nid=n;
+  merges.forEach(m=>{children[nid]=[m.left,m.right];nid++;});
+  function traverse(id){
+    if(id<n)return[id];
+    const[l,r]=children[id];
+    return[...traverse(l),...traverse(r)];
+  }
+  return traverse(nid-1);
+}
+
+function drawDendro(cutH){
+  const c=document.getElementById('dendro-canvas'),ctx=c.getContext('2d');
+  const W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);
+  if(!aggloMerges.length)return;
+  const n=aggloPoints.length;
+  const PAD={t:15,b:28,l:42,r:15};
+  const CW=W-PAD.l-PAD.r,CH=H-PAD.t-PAD.b;
+  const order=leafOrder(aggloMerges,n);
+  const leafX={};order.forEach((id,pos)=>leafX[id]=PAD.l+pos/(n-1)*CW);
+  const nodeX={...leafX};
+  const mergeH={};
+  let nid=n;
+  aggloMerges.forEach(m=>{nodeX[nid]=(nodeX[m.left]+nodeX[m.right])/2;mergeH[nid]=m.h;nid++;});
+  const maxH=aggloMerges[aggloMerges.length-1].h;
+  const hY=h=>PAD.t+CH-(h/maxH)*CH;
+  const getNodeH=id=>id<n?0:(mergeH[id]||0);
+
+  nid=n;
+  aggloMerges.forEach(m=>{
+    const lx=nodeX[m.left],rx=nodeX[m.right],my=hY(m.h);
+    const belowCut=m.h<=cutH;
+    ctx.strokeStyle=belowCut?'rgba(193,68,14,0.6)':'rgba(92,74,42,0.45)';
+    ctx.lineWidth=belowCut?1.6:1.1;
+    ctx.beginPath();ctx.moveTo(lx,my);ctx.lineTo(rx,my);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(lx,my);ctx.lineTo(lx,hY(getNodeH(m.left)));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(rx,my);ctx.lineTo(rx,hY(getNodeH(m.right)));ctx.stroke();
+    nid++;
+  });
+
+  // Leaf dots
+  for(let i=0;i<n;i++){ctx.beginPath();ctx.arc(leafX[i],hY(0),2.5,0,PI2);ctx.fillStyle='rgba(92,74,42,0.35)';ctx.fill();}
+
+  // Y ticks
+  ctx.fillStyle='rgba(92,74,42,0.45)';ctx.font='9px JetBrains Mono';ctx.textAlign='right';
+  [0,.25,.5,.75,1].forEach(t=>{
+    const y=hY(t*maxH);
+    ctx.fillText((t*maxH).toFixed(2),PAD.l-4,y+3);
+    ctx.strokeStyle='rgba(92,74,42,0.06)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W-PAD.r,y);ctx.stroke();
+  });
+  ctx.textAlign='left';
+
+  // Cut line
+  if(cutH>0&&cutH<maxH*1.01){
+    const cy=hY(cutH);
+    ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle='#c1440e';ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.moveTo(PAD.l,cy);ctx.lineTo(W-PAD.r,cy);ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    const nc=aggloClusters.length;
+    ctx.fillStyle='#c1440e';ctx.font='bold 9px JetBrains Mono';
+    ctx.fillText(`${nc} cluster${nc!==1?'s':''}`,PAD.l+4,cy-5);
+  }
+}
+
+function drawAggloScatter(){
+  const c=document.getElementById('agglo-scatter'),ctx=c.getContext('2d');
+  const W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);
+  if(!aggloPoints.length)return;
+  const PL=50,PR=20,PT=20,PB=35,CW=W-PL-PR,CH=H-PT-PB;
+
+  // Grid + axes
+  for(let v=0;v<=10;v+=2){
+    const x=PL+v/10*CW,y=PT+CH-v/10*CH;
+    ctx.strokeStyle='rgba(92,74,42,0.07)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,PT);ctx.lineTo(x,PT+CH);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(PL,y);ctx.lineTo(PL+CW,y);ctx.stroke();
+    ctx.fillStyle='rgba(92,74,42,0.4)';ctx.font='9px JetBrains Mono';
+    ctx.textAlign='center';ctx.fillText(v,x,PT+CH+14);
+    ctx.textAlign='right';ctx.fillText(v,PL-5,y+4);
+  }
+  ctx.textAlign='left';
+  ctx.strokeStyle='rgba(92,74,42,0.3)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(PL,PT);ctx.lineTo(PL,PT+CH);ctx.lineTo(PL+CW,PT+CH);ctx.stroke();
+  ctx.font='11px "Source Serif 4"';ctx.fillStyle='rgba(92,74,42,0.6)';ctx.textAlign='center';
+  ctx.fillText('Purchase Frequency (per month)',PL+CW/2,H-5);
+  ctx.save();ctx.translate(13,PT+CH/2);ctx.rotate(-Math.PI/2);ctx.fillText('Avg. Spend (normalised)',0,0);ctx.restore();
+  ctx.textAlign='left';
+
+  const pc=Array(aggloPoints.length).fill(0);
+  aggloClusters.forEach((cl,ci)=>cl.forEach(i=>pc[i]=ci));
+
+  // Halos
+  aggloClusters.forEach((cl,ci)=>{
+    if(cl.length<2)return;
+    const pts=cl.map(i=>[PL+aggloPoints[i][0]/10*CW,PT+CH-aggloPoints[i][1]/10*CH]);
+    const cx=meanArr(pts.map(p=>p[0])),cy=meanArr(pts.map(p=>p[1]));
+    const r=Math.max(...pts.map(p=>Math.hypot(p[0]-cx,p[1]-cy)))+18;
+    const g2=ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+    const rgb=hexRgb(COLORS[ci%COLORS.length]);
+    g2.addColorStop(0,`rgba(${rgb},0.13)`);g2.addColorStop(1,`rgba(${rgb},0)`);
+    ctx.beginPath();ctx.arc(cx,cy,r,0,PI2);ctx.fillStyle=g2;ctx.fill();
+  });
+
+  aggloPoints.forEach((p,i)=>{
+    const ci=pc[i],col=COLORS[ci%COLORS.length],lc=LCOLORS[ci%LCOLORS.length];
+    const x=PL+p[0]/10*CW,y=PT+CH-p[1]/10*CH;
+    ctx.beginPath();ctx.arc(x,y,5.5,0,PI2);ctx.fillStyle=lc;ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.stroke();
+  });
+}
+
+const SEG_NAMES=[['💎 VIP Buyers'],['🛒 Regular Shoppers'],['✨ Occasional Splurgers'],['💰 Budget Browsers'],['❤️ Loyal Fans'],['🔍 New Explorers']];
+function renderCards(){
+  const el=document.getElementById('cluster-cards');
+  if(!aggloClusters.length){el.innerHTML='';return;}
+  el.innerHTML=aggloClusters.map((cl,ci)=>{
+    const col=COLORS[ci%COLORS.length];
+    const freq=meanArr(cl.map(i=>aggloPoints[i][0])).toFixed(1);
+    const spend=meanArr(cl.map(i=>aggloPoints[i][1])).toFixed(1);
+    const nm=(SEG_NAMES[ci]||['🏷️ Cluster '+(ci+1)])[0];
+    return `<div class="cluster-card" style="border-left:3px solid ${col};">
+      <h4 style="color:${col};">${nm}</h4>
+      <div class="cstats">n = ${cl.length} customers<br>freq̄ = ${freq}/mo  spend̄ = ${spend}</div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('agglo-scatter').addEventListener('mousemove',e=>{
+  if(!aggloPoints.length){hideTip();return;}
+  const c2=document.getElementById('agglo-scatter'),rb=c2.getBoundingClientRect();
+  const sx=(e.clientX-rb.left)/rb.width*c2.width,sy=(e.clientY-rb.top)/rb.height*c2.height;
+  const PL=50,CW=c2.width-70,CH=c2.height-55;
+  const pc=Array(aggloPoints.length).fill(0);aggloClusters.forEach((cl,ci)=>cl.forEach(i=>pc[i]=ci));
+  let f=false;
+  aggloPoints.forEach((p,i)=>{const x=PL+p[0]/10*CW,y=20+CH-p[1]/10*CH;if(Math.hypot(sx-x,sy-y)<10){showTip(e.clientX,e.clientY,`Freq:${p[0].toFixed(1)}/mo  Spend:${p[1].toFixed(1)}  [C${pc[i]+1}]`);f=true;}});
+  if(!f)hideTip();
+});
+document.getElementById('agglo-scatter').addEventListener('mouseleave',hideTip);
+
+/* Init */
+kmGenerate();
+</script>
+</body>
+</html>
