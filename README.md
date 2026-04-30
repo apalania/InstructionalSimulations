@@ -1,5 +1,5 @@
 # Instructional Simulations
-Adaptive interactive teaching materials, prepared with LLMs (Gemini & Claude mostly, open-source models will be noted against the demo)    
+Adaptive interactive teaching materials, prepared with LLMs (Gemini, Claude, open-source models)    
 
 ### Author: Dr Ashok Palaniappan
 ### Licence: CC BY-NC-SA
