@@ -1,6 +1,14 @@
 # Instructional Simulations
 Adaptive interactive teaching materials, prepared with Google Gemini & Claude Sonnet 3.7 - 4.5    
 
-Licence: CC BY-NC-SA
+## Author: Dr Ashok Palaniappan
+## Licence: CC BY-NC-SA
 
-Dr Ashok Palaniappan
+Demos for the following concepts / topics in Machine Learning are available:
+- Bias variance tradeoff
+- RNN architecture progression, from vanilla to BiLSTM
+- Training of neural networks
+- Linear regression and the deduction of physical laws
+- Classification algorithms and decision boundaries thereof
+- Simple clustering algorithms
+  [April 2026]
