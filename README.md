@@ -12,4 +12,4 @@ Demos for the following concepts / topics in Machine Learning are available:
 - [Elementary classification algorithms](https://apalania.github.io/InstructionalSimulations/Classification-baselines), April-2026
 - [Elementary clustering algorithms](https://apalania.github.io/InstructionalSimulations/Clustering), April-2026
 
-[April 2026]
+Last updated, April 2026.
