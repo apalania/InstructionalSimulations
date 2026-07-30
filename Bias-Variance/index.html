@@ -14,6 +14,21 @@
             min-height: 100vh;
         }
 
+        .banner {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 12px 20px;
+            text-align: center;
+            font-size: 13px;
+            border-bottom: 1px solid #1a252f;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        .banner p { margin: 0; letter-spacing: 0.3px; }
+        
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -229,6 +244,11 @@
 </script>
 </head>
 <body>
+    <!-- BANNER -->
+    <div class="banner">
+        <p>Dr Ashok Palaniappan, Systems Computational Biology Lab, School of Chemical and Biotechnology, SASTRA University</p>
+    </div>
+
     <div class="container">
         <h1>🎯 Bias-Variance Tradeoff</h1>
         <p class="subtitle">Interactive Demonstration of Machine Learning's Fundamental Tradeoff</p>
