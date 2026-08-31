@@ -11,5 +11,7 @@ Demos for the following concepts / topics in Machine Learning are available:
 - [Linear regression and the deduction of physical laws](https://apalania.github.io/InstructionalSimulations/LinearRegression/), March-2026
 - [Elementary classification algorithms](https://apalania.github.io/InstructionalSimulations/Classification-baselines), April-2026
 - [Elementary clustering algorithms](https://apalania.github.io/InstructionalSimulations/Clustering), April-2026
+- [CNN - demo of standard architectures](https://apalania.github.io/InstructionalSimulations/CNNs), August 31, 2026
+- [CNN - live architecture design and training against standard problems](https://apalania.github.io/InstructionalSimulations/CNN-live), August 31, 2026
 
-Last updated, April 2026.
+Last updated, August 2026.
