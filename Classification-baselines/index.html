@@ -42,8 +42,23 @@ body {
   background: var(--bg); color: var(--text);
   line-height: 1.6; -webkit-font-smoothing: antialiased;
 }
+        .banner {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 12px 20px;
+            text-align: center;
+            font-size: 13px;
+            border-bottom: 1px solid #1a252f;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .banner p { margin: 0; letter-spacing: 0.3px; }   
 
-.top-nav {
+  .top-nav {
   position: sticky; top: 0; z-index: 100;
   background: rgba(253,246,238,0.85);
   backdrop-filter: blur(16px);
@@ -237,7 +252,12 @@ body {
 </script>
 </head>
 <body>
-
+  
+  <!-- BANNER -->
+  <div class="banner">
+      <p>Dr Ashok Palaniappan, Systems Computational Biology Lab, School of Chemical and Biotechnology, SASTRA University</p>
+  </div>
+  
 <nav class="top-nav">
   <div class="top-nav-inner">
     <span class="nav-logo">ML Lab</span>
