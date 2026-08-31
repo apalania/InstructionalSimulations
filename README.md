@@ -1,7 +1,7 @@
 # Instructional Simulations
 Adaptive interactive teaching materials, prepared with LLMs (Gemini, Claude, open-source GPT models)    
 
-### Author: Dr Ashok Palaniappan
+### Human Author: Dr Ashok Palaniappan
 ### Licence: CC BY-NC-SA
 
 Demos for the following concepts / topics in Machine Learning are available:
