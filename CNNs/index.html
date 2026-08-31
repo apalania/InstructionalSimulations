@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive CNN Complexity Explorer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2.8em;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            color: #aaa;
+            font-size: 1.1em;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .control-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .panel-section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .panel-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .panel-section h3 {
+            font-size: 0.95em;
+            margin-bottom: 15px;
+            color: #667eea;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+        
+        .slider-control {
+            margin-bottom: 18px;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85em;
+            color: #ccc;
+        }
+        
+        .slider-value {
+            color: #667eea;
+            font-weight: 700;
+            font-size: 1em;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            cursor: pointer;
+            border: none;
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .level-button {
+            padding: 10px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.75em;
+            text-align: center;
+        }
+        
+        .level-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .level-button.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .preset-btn {
+            padding: 8px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.75em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .preset-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .train-button, .reset-button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        
+        .reset-button {
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 0.85em;
+            padding: 10px;
+        }
+        
+        .train-button:hover:not(:disabled), .reset-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .train-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .train-button.training {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+        
+        .stats-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 0.7em;
+            color: #aaa;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-value {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .recommendation {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 0.8em;
+            line-height: 1.5;
+        }
+        
+        .recommendation.warning {
+            background: rgba(255, 193, 7, 0.1);
+            border-color: rgba(255, 193, 7, 0.3);
+        }
+        
+        .recommendation.error {
+            background: rgba(220, 53, 69, 0.1);
+            border-color: rgba(220, 53, 69, 0.3);
+        }
+        
+        .visualization-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .network-viz {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .network-viz h2 {
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            color: #667eea;
+        }
+        
+        .architecture-display {
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            padding: 20px 0;
+            min-height: 200px;
+            align-items: center;
+        }
+        
+        .architecture-display::-webkit-scrollbar {
+            height: 8px;
+        }
+        
+        .architecture-display::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        .architecture-display::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.5);
+            border-radius: 4px;
+        }
+        
+        .layer-block {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+            border: 2px solid rgba(102, 126, 234, 0.5);
+            border-radius: 12px;
+            padding: 15px;
+            min-width: 100px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        .layer-block:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.4), rgba(118, 75, 162, 0.4));
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .layer-block.conv { border-color: #667eea; }
+        .layer-block.pool { border-color: #764ba2; }
+        .layer-block.dense { border-color: #f093fb; }
+        .layer-block.output { border-color: #28a745; }
+        
+        .layer-name {
+            font-weight: 700;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+        
+        .layer-details {
+            font-size: 0.7em;
+            color: #aaa;
+            line-height: 1.4;
+        }
+        
+        .arrow {
+            color: #667eea;
+            font-size: 1.5em;
+            flex-shrink: 0;
+        }
+        
+        .rf-visualization {
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+        }
+        
+        .rf-visualization h3 {
+            font-size: 1em;
+            margin-bottom: 15px;
+            color: #aaa;
+        }
+        
+        .rf-layers {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .rf-layer {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .rf-layer:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .rf-layer-name {
+            min-width: 70px;
+            font-size: 0.75em;
+            color: #aaa;
+            font-family: monospace;
+        }
+        
+        .rf-bar-container {
+            flex: 1;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            position: relative;
+            overflow: visible;
+        }
+        
+        .rf-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 0.7em;
+            font-weight: 700;
+            transition: width 0.5s ease;
+            position: relative;
+            min-width: 40px;
+        }
+        
+        .rf-value {
+            min-width: 50px;
+            font-size: 0.75em;
+            color: #667eea;
+            font-weight: 700;
+            text-align: right;
+            font-family: monospace;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .metric-card h3 {
+            font-size: 0.8em;
+            color: #aaa;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .metric-value {
+            font-size: 2.2em;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .metric-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .metric-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .chart-container {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: 300px;
+        }
+        
+        .training-log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+        }
+        
+        .training-log::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .training-log::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        .training-log::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.5);
+            border-radius: 4px;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #667eea;
+            padding-left: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .log-entry.success { border-left-color: #28a745; color: #28a745; }
+        .log-entry.warning { border-left-color: #ffc107; color: #ffc107; }
+        .log-entry.info { border-left-color: #667eea; color: #667eea; }
+        
+        .help-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background: rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 16px;
+            font-size: 0.7em;
+            cursor: help;
+            margin-left: 5px;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .control-panel {
+                position: relative;
+                top: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Interactive CNN Complexity Explorer</h1>
+            <p class="subtitle">Experiment with Architecture Design & Observe Bias-Variance Tradeoffs</p>
+        </div>
+        
+        <div class="main-grid">
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <div class="panel-section">
+                    <h3>🎯 Problem Complexity</h3>
+                    <div class="button-group">
+                        <button class="level-button active" onclick="setProblemLevel(1)">
+                            Simple<br><small>2 classes</small>
+                        </button>
+                        <button class="level-button" onclick="setProblemLevel(2)">
+                            Medium<br><small>10 classes</small>
+                        </button>
+                        <button class="level-button" onclick="setProblemLevel(3)">
+                            Complex<br><small>100 classes</small>
+                        </button>
+                    </div>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" onclick="loadPreset('vgg')">VGG-like</button>
+                        <button class="preset-btn" onclick="loadPreset('resnet')">ResNet-like</button>
+                        <button class="preset-btn" onclick="loadPreset('minimal')">Minimal</button>
+                        <button class="preset-btn" onclick="loadPreset('deep')">Deep</button>
+                    </div>
+                </div>
+                
+                <div class="panel-section">
+                    <h3>🏗️ Architecture</h3>
+                    
+                    <div class="slider-control">
+                        <div class="slider-label">
+                            <span>Conv Blocks</span>
+                            <span class="slider-value" id="convLayersValue">2</span>
+                        </div>
+                        <input type="range" id="convLayers" min="1" max="6" value="2" oninput="updateArchitecture()">
+                    </div>
+                    
+                    <div class="slider-control">
+                        <div class="slider-label">
+                            <span>Base Filters</span>
+                            <span class="slider-value" id="baseFiltersValue">32</span>
+                        </div>
+                        <input type="range" id="baseFilters" min="8" max="128" step="8" value="32" oninput="updateArchitecture()">
+                    </div>
+                    
+                    <div class="slider-control">
+                        <div class="slider-label">
+                            <span>Dense Units</span>
+                            <span class="slider-value" id="denseUnitsValue">128</span>
+                        </div>
+                        <input type="range" id="denseUnits" min="32" max="512" step="32" value="128" oninput="updateArchitecture()">
+                    </div>
+                    
+                    <div class="slider-control">
+                        <div class="slider-label">
+                            <span>Dropout</span>
+                            <span class="slider-value" id="dropoutValue">0.2</span>
+                        </div>
+                        <input type="range" id="dropout" min="0" max="0.7" step="0.1" value="0.2" oninput="updateArchitecture()">
+                    </div>
+                </div>
+                
+                <div class="panel-section">
+                    <h3>💾 Dataset</h3>
+                    
+                    <div class="slider-control">
+                        <div class="slider-label">
+                            <span>Samples</span>
+                            <span class="slider-value" id="samplesValue">1000</span>
+                        </div>
+                        <input type="range" id="samples" min="100" max="10000" step="100" value="1000" oninput="updateDataset()">
+                    </div>
+                    
+                    <div class="slider-control">
+                        <div class="slider-label">
+                            <span>Noise Level</span>
+                            <span class="slider-value" id="noiseValue">0.1</span>
+                        </div>
+                        <input type="range" id="noise" min="0" max="0.5" step="0.05" value="0.1" oninput="updateDataset()">
+                    </div>
+                </div>
+                
+                <button class="train-button" id="trainButton" onclick="startTraining()">
+                    ▶️ Start Training
+                </button>
+                
+                <button class="reset-button" onclick="resetAll()">
+                    🔄 Reset All
+                </button>
+                
+                <div class="stats-display">
+                    <div class="stat-item">
+                        <div class="stat-label">Parameters</div>
+                        <div class="stat-value" id="totalParams">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Layers</div>
+                        <div class="stat-value" id="totalLayers">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Max RF</div>
+                        <div class="stat-value" id="rfSize">0×0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">FLOPs</div>
+                        <div class="stat-value" id="totalFlops">0</div>
+                    </div>
+                </div>
+                
+                <div id="recommendation" class="recommendation" style="display: none;"></div>
+            </div>
+            
+            <!-- Visualization Area -->
+            <div class="visualization-area">
+                <div class="network-viz">
+                    <h2>🔗 Network Architecture</h2>
+                    <div class="architecture-display" id="architectureDisplay"></div>
+                    
+                    <div class="rf-visualization">
+                        <h3>📏 Receptive Field Growth (pixels visible to each layer)</h3>
+                        <div class="rf-layers" id="rfLayers"></div>
+                    </div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <h3>Training Accuracy</h3>
+                        <div class="metric-value" id="trainAcc">0.0%</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill" id="trainAccBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <h3>Validation Accuracy</h3>
+                        <div class="metric-value" id="valAcc">0.0%</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill" id="valAccBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <h3>Overfitting Gap</h3>
+                        <div class="metric-value" id="biasVar">0.0%</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill" id="biasVarBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <h3>Model Efficiency</h3>
+                        <div class="metric-value" id="efficiency">0.0</div>
+                        <div class="metric-bar">
+                            <div class="metric-bar-fill" id="efficiencyBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="trainingChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="training-log" id="trainingLog"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let state = {
+            problemLevel: 1,
+            numClasses: 2,
+            convBlocks: 2,
+            baseFilters: 32,
+            denseUnits: 128,
+            dropout: 0.2,
+            samples: 1000,
+            noise: 0.1,
+            isTraining: false,
+            architecture: []
+        };
+        
+        let trainingChart = null;
+        
+        // Initialize
+        function init() {
+            updateArchitecture();
+            updateDataset();
+            initTrainingChart();
+            showRecommendation();
+        }
+        
+        // Presets
+        function loadPreset(type) {
+            const presets = {
+                'vgg': { blocks: 4, filters: 64, dense: 256, dropout: 0.5 },
+                'resnet': { blocks: 5, filters: 64, dense: 512, dropout: 0.3 },
+                'minimal': { blocks: 1, filters: 16, dense: 64, dropout: 0.1 },
+                'deep': { blocks: 6, filters: 32, dense: 128, dropout: 0.4 }
+            };
+            
+            const preset = presets[type];
+            document.getElementById('convLayers').value = preset.blocks;
+            document.getElementById('baseFilters').value = preset.filters;
+            document.getElementById('denseUnits').value = preset.dense;
+            document.getElementById('dropout').value = preset.dropout;
+            
+            updateArchitecture();
+            logMessage(`Loaded ${type.toUpperCase()} preset`, 'info');
+        }
+        
+        // Reset all
+        function resetAll() {
+            document.getElementById('convLayers').value = 2;
+            document.getElementById('baseFilters').value = 32;
+            document.getElementById('denseUnits').value = 128;
+            document.getElementById('dropout').value = 0.2;
+            document.getElementById('samples').value = 1000;
+            document.getElementById('noise').value = 0.1;
+            
+            setProblemLevel(1);
+            clearLog();
+            
+            if (trainingChart) {
+                trainingChart.data.labels = [];
+                trainingChart.data.datasets[0].data = [];
+                trainingChart.data.datasets[1].data = [];
+                trainingChart.update();
+            }
+            
+            document.getElementById('trainAcc').textContent = '0.0%';
+            document.getElementById('valAcc').textContent = '0.0%';
+            document.getElementById('biasVar').textContent = '0.0%';
+            document.getElementById('trainAccBar').style.width = '0%';
+            document.getElementById('valAccBar').style.width = '0%';
+            document.getElementById('biasVarBar').style.width = '0%';
+            
+            logMessage('Reset to default configuration', 'info');
+        }
+        
+        // Set problem level
+        function setProblemLevel(level) {
+            state.problemLevel = level;
+            state.numClasses = level === 1 ? 2 : level === 2 ? 10 : 100;
+            
+            document.querySelectorAll('.level-button').forEach((btn, idx) => {
+                btn.classList.toggle('active', idx === level - 1);
+            });
+            
+            updateArchitecture();
+            showRecommendation();
+            logMessage(`Set to Level ${level}: ${state.numClasses} classes`, 'info');
+        }
+        
+        // Update architecture
+        function updateArchitecture() {
+            state.convBlocks = parseInt(document.getElementById('convLayers').value);
+            state.baseFilters = parseInt(document.getElementById('baseFilters').value);
+            state.denseUnits = parseInt(document.getElementById('denseUnits').value);
+            state.dropout = parseFloat(document.getElementById('dropout').value);
+            
+            document.getElementById('convLayersValue').textContent = state.convBlocks;
+            document.getElementById('baseFiltersValue').textContent = state.baseFilters;
+            document.getElementById('denseUnitsValue').textContent = state.denseUnits;
+            document.getElementById('dropoutValue').textContent = state.dropout.toFixed(1);
+            
+            buildArchitecture();
+            calculateMetrics();
+            renderArchitecture();
+            renderReceptiveField();
+            showRecommendation();
+        }
+        
+        // Build architecture array
+        function buildArchitecture() {
+            state.architecture = [];
+            let filters = state.baseFilters;
+            let h = 32, w = 32;
+            
+            for (let i = 0; i < state.convBlocks; i++) {
+                state.architecture.push({
+                    type: 'conv',
+                    filters: filters,
+                    kernelSize: 3,
+                    stride: 1,
+                    inputShape: [h, w],
+                    params: 3 * 3 * (i === 0 ? 3 : filters / 2) * filters + filters
+                });
+                
+                h = Math.floor(h / 2);
+                w = Math.floor(w / 2);
+                state.architecture.push({
+                    type: 'pool',
+                    kernelSize: 2,
+                    stride: 2,
+                    inputShape: [h * 2, w * 2],
+                    params: 0
+                });
+                
+                filters *= 2;
+            }
+            
+            state.architecture.push({ type: 'flatten', params: 0 });
+            
+            const flatSize = h * w * (filters / 2);
+            state.architecture.push({
+                type: 'dense',
+                units: state.denseUnits,
+                params: flatSize * state.denseUnits + state.denseUnits
+            });
+            
+            state.architecture.push({
+                type: 'output',
+                units: state.numClasses,
+                params: state.denseUnits * state.numClasses + state.numClasses
+            });
+        }
+        
+        // Calculate metrics
+        function calculateMetrics() {
+            let totalParams = 0;
+            let totalLayers = 0;
+            
+            state.architecture.forEach(layer => {
+                totalParams += layer.params || 0;
+                if (layer.type !== 'pool' && layer.type !== 'flatten') {
+                    totalLayers++;
+                }
+            });
+            
+            let rf = 1;
+            let stride = 1;
+            state.architecture.forEach(layer => {
+                if (layer.type === 'conv') {
+                    rf += (layer.kernelSize - 1) * stride;
+                } else if (layer.type === 'pool') {
+                    rf += (layer.kernelSize - 1) * stride;
+                    stride *= layer.stride;
+                }
+            });
+            
+            let flops = 0;
+            state.architecture.forEach(layer => {
+                if (layer.type === 'conv') {
+                    const [h, w] = layer.inputShape;
+                    flops += h * w * layer.kernelSize * layer.kernelSize * layer.filters;
+                } else if (layer.type === 'dense') {
+                    flops += layer.params;
+                }
+            });
+            
+            document.getElementById('totalParams').textContent = formatNumber(totalParams);
+            document.getElementById('totalLayers').textContent = totalLayers;
+            document.getElementById('rfSize').textContent = `${rf}×${rf}`;
+            document.getElementById('totalFlops').textContent = formatNumber(flops);
+            
+            const optimalBlocks = state.problemLevel * 1.5;
+            const blockDiff = Math.abs(state.convBlocks - optimalBlocks);
+            const efficiency = Math.max(0, 10 - blockDiff * 1.5);
+            
+            document.getElementById('efficiency').textContent = efficiency.toFixed(1);
+            document.getElementById('efficiencyBar').style.width = `${efficiency * 10}%`;
+        }
+        
+        // Show recommendation
+        function showRecommendation() {
+            const rec = document.getElementById('recommendation');
+            const optimalBlocks = state.problemLevel * 1.5;
+            const diff = state.convBlocks - optimalBlocks;
+            
+            if (Math.abs(diff) < 0.8) {
+                rec.style.display = 'block';
+                rec.className = 'recommendation';
+                rec.textContent = '✅ Good match! Model complexity suits the problem.';
+            } else if (diff < -1.5) {
+                rec.style.display = 'block';
+                rec.className = 'recommendation warning';
+                rec.textContent = '⚠️ Model may be too simple. Consider adding more layers for better performance.';
+            } else if (diff > 1.5) {
+                rec.style.display = 'block';
+                rec.className = 'recommendation error';
+                rec.textContent = '❌ Model may be too complex. Risk of overfitting - watch training closely!';
+            } else {
+                rec.style.display = 'none';
+            }
+        }
+        
+        // Render architecture
+        function renderArchitecture() {
+            const container = document.getElementById('architectureDisplay');
+            container.innerHTML = '';
+            
+            state.architecture.forEach((layer, idx) => {
+                if (idx > 0) {
+                    const arrow = document.createElement('div');
+                    arrow.className = 'arrow';
+                    arrow.textContent = '→';
+                    container.appendChild(arrow);
+                }
+                
+                const block = document.createElement('div');
+                block.className = `layer-block ${layer.type}`;
+                
+                let name = '';
+                let details = '';
+                
+                if (layer.type === 'conv') {
+                    name = `Conv2D`;
+                    details = `${layer.filters} filters<br>${layer.kernelSize}×${layer.kernelSize} kernel`;
+                } else if (layer.type === 'pool') {
+                    name = `MaxPool2D`;
+                    details = `${layer.kernelSize}×${layer.kernelSize}<br>stride ${layer.stride}`;
+                } else if (layer.type === 'flatten') {
+                    name = `Flatten`;
+                } else if (layer.type === 'dense') {
+                    name = `Dense`;
+                    details = `${layer.units} units<br>Dropout ${state.dropout}`;
+                } else if (layer.type === 'output') {
+                    name = `Output`;
+                    details = `${layer.units} classes`;
+                }
+                
+                block.innerHTML = `
+                    <div class="layer-name">${name}</div>
+                    <div class="layer-details">${details}</div>
+                `;
+                
+                container.appendChild(block);
+            });
+        }
+        
+        // Render receptive field with logarithmic-like scaling
+        function renderReceptiveField() {
+            const container = document.getElementById('rfLayers');
+            container.innerHTML = '';
+            
+            let rf = 1;
+            let stride = 1;
+            let layerNum = 0;
+            
+            state.architecture.forEach((layer, idx) => {
+                if (layer.type === 'conv' || layer.type === 'pool') {
+                    layerNum++;
+                    const rfLayer = document.createElement('div');
+                    rfLayer.className = 'rf-layer';
+                    
+                    const name = document.createElement('div');
+                    name.className = 'rf-layer-name';
+                    name.textContent = `Layer ${layerNum}`;
+                    
+                    const barContainer = document.createElement('div');
+                    barContainer.className = 'rf-bar-container';
+                    
+                    const bar = document.createElement('div');
+                    bar.className = 'rf-bar';
+                    
+                    // Use sqrt scaling for better visualization
+                    const maxRF = 100;
+                    const scaledWidth = Math.sqrt(rf / maxRF) * 100;
+                    bar.style.width = `${Math.min(100, Math.max(10, scaledWidth))}%`;
+                    bar.textContent = `${rf}×${rf}`;
+                    
+                    const value = document.createElement('div');
+                    value.className = 'rf-value';
+                    value.textContent = `${rf}px`;
+                    
+                    barContainer.appendChild(bar);
+                    rfLayer.appendChild(name);
+                    rfLayer.appendChild(barContainer);
+                    rfLayer.appendChild(value);
+                    container.appendChild(rfLayer);
+                    
+                    // Update RF
+                    if (layer.type === 'conv') {
+                        rf += (layer.kernelSize - 1) * stride;
+                    } else if (layer.type === 'pool') {
+                        rf += (layer.kernelSize - 1) * stride;
+                        stride *= layer.stride;
+                    }
+                }
+            });
+        }
+        
+        // Update dataset
+        function updateDataset() {
+            state.samples = parseInt(document.getElementById('samples').value);
+            state.noise = parseFloat(document.getElementById('noise').value);
+            
+            document.getElementById('samplesValue').textContent = state.samples.toLocaleString();
+            document.getElementById('noiseValue').textContent = state.noise.toFixed(2);
+        }
+        
+        // Initialize training chart
+        function initTrainingChart() {
+            const ctx = document.getElementById('trainingChart').getContext('2d');
+            trainingChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Training',
+                        data: [],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        borderWidth: 2,
+                        fill: true
+                    }, {
+                        label: 'Validation',
+                        data: [],
+                        borderColor: '#764ba2',
+                        backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                        tension: 0.4,
+                        borderWidth: 2,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 300 },
+                    plugins: {
+                        legend: { labels: { color: '#fff', font: { size: 12 } } }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#aaa' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            min: 0,
+                            max: 100,
+                            ticks: {
+                                color: '#aaa',
+                                callback: v => v + '%'
+                            },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Start training
+        async function startTraining() {
+            if (state.isTraining) return;
+            
+            state.isTraining = true;
+            const button = document.getElementById('trainButton');
+            button.classList.add('training');
+            button.textContent = '⏸️ Training...';
+            button.disabled = true;
+            
+            clearLog();
+            logMessage('Starting training simulation...', 'info');
+            logMessage(`Architecture: ${state.convBlocks} conv blocks, ${state.baseFilters} base filters`, 'info');
+            
+            trainingChart.data.labels = [];
+            trainingChart.data.datasets[0].data = [];
+            trainingChart.data.datasets[1].data = [];
+            trainingChart.update();
+            
+            const epochs = 20;
+            const optimalComplexity = state.problemLevel * 1.8;
+            const actualComplexity = state.convBlocks;
+            const complexityRatio = actualComplexity / optimalComplexity;
+            
+            let baseTrainAcc, baseValAcc;
+            if (complexityRatio < 0.6) {
+                baseTrainAcc = 0.4 + Math.random() * 0.1;
+                baseValAcc = 0.38 + Math.random() * 0.1;
+                logMessage('⚠️ Underfitting likely - model too simple', 'warning');
+            } else if (complexityRatio > 1.4) {
+                baseTrainAcc = 0.6 + Math.random() * 0.1;
+                baseValAcc = 0.4 + Math.random() * 0.1;
+                logMessage('⚠️ Overfitting likely - model too complex', 'warning');
+            } else {
+                baseTrainAcc = 0.5 + Math.random() * 0.1;
+                baseValAcc = 0.48 + Math.random() * 0.1;
+                logMessage('✅ Good complexity match', 'success');
+            }
+            
+            for (let epoch = 0; epoch < epochs; epoch++) {
+                await sleep(200);
+                
+                const progress = (epoch + 1) / epochs;
+                const learningFactor = 1 - Math.exp(-3 * progress);
+                
+                const trainAcc = Math.min(0.98, baseTrainAcc + learningFactor * 0.4 + (Math.random() - 0.5) * 0.02);
+                const overfitFactor = complexityRatio > 1.2 ? (complexityRatio - 1) * 0.15 : 0;
+                const overfitGrowth = overfitFactor * progress;
+                const valAcc = Math.min(0.95, baseValAcc + learningFactor * 0.35 - overfitGrowth + (Math.random() - 0.5) * 0.03);
+                const finalValAcc = Math.min(valAcc, trainAcc - 0.01);
+                
+                trainingChart.data.labels.push(epoch + 1);
+                trainingChart.data.datasets[0].data.push(trainAcc * 100);
+                trainingChart.data.datasets[1].data.push(finalValAcc * 100);
+                trainingChart.update();
+                
+                updateMetrics(trainAcc, finalValAcc);
+                
+                if (epoch % 5 === 0 || epoch === epochs - 1) {
+                    logMessage(`Epoch ${epoch + 1}/${epochs} - Train: ${(trainAcc * 100).toFixed(1)}%, Val: ${(finalValAcc * 100).toFixed(1)}%`, 'info');
+                }
+            }
+            
+            state.isTraining = false;
+            button.classList.remove('training');
+            button.textContent = '▶️ Start Training';
+            button.disabled = false;
+            
+            analyzeResults();
+        }
+        
+        // Update metrics
+        function updateMetrics(trainAcc, valAcc) {
+            trainAcc = Math.max(0, Math.min(1, trainAcc));
+            valAcc = Math.max(0, Math.min(1, valAcc));
+            
+            const trainPct = trainAcc * 100;
+            const valPct = valAcc * 100;
+            const gap = (trainAcc - valAcc) * 100;
+            
+            document.getElementById('trainAcc').textContent = trainPct.toFixed(1) + '%';
+            document.getElementById('valAcc').textContent = valPct.toFixed(1) + '%';
+            document.getElementById('biasVar').textContent = gap.toFixed(1) + '%';
+            
+            document.getElementById('trainAccBar').style.width = trainPct + '%';
+            document.getElementById('valAccBar').style.width = valPct + '%';
+            document.getElementById('biasVarBar').style.width = Math.min(100, gap * 10) + '%';
+        }
+        
+        // Analyze results
+        function analyzeResults() {
+            const trainData = trainingChart.data.datasets[0].data;
+            const valData = trainingChart.data.datasets[1].data;
+            
+            const finalTrain = trainData[trainData.length - 1];
+            const finalVal = valData[valData.length - 1];
+            const gap = finalTrain - finalVal;
+            
+            if (gap > 15) {
+                logMessage('❌ Severe overfitting! Reduce layers/filters or add more data/dropout', 'warning');
+            } else if (gap > 8) {
+                logMessage('⚠️ Moderate overfitting. Try: more regularization', 'warning');
+            } else if (finalVal < 60) {
+                logMessage('⚠️ Low accuracy. Try: deeper network, more filters', 'warning');
+            } else if (finalVal > 85 && gap < 5) {
+                logMessage('🎉 Excellent! Optimal model-problem match', 'success');
+            } else {
+                logMessage('✅ Training complete', 'success');
+            }
+            
+            logMessage(`Final - Train: ${finalTrain.toFixed(1)}%, Val: ${finalVal.toFixed(1)}%, Gap: ${gap.toFixed(1)}%`, 'info');
+        }
+        
+        // Logging
+        function logMessage(message, type = 'info') {
+            const log = document.getElementById('trainingLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('trainingLog').innerHTML = '';
+        }
+        
+        // Utilities
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return Math.round(num).toString();
+        }
+        
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        // Initialize
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
