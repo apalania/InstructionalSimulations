@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/1061223459.svg)](https://doi.org/10.5281/zenodo.22280569)
 # Instructional Simulations
 Adaptive interactive teaching materials, prepared with LLMs (Gemini, Claude, open-source GPT models)    
 
