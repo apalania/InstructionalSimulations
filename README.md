@@ -2,9 +2,11 @@
 Adaptive interactive teaching materials, prepared with LLMs (Gemini, Claude, open-source GPT models)    
 
 ### Human Author: Dr Ashok Palaniappan
-### Licence: CC BY-NC-SA
 
-Demos for the following concepts / topics in Machine Learning are available:
+Science Demos:
+- [Enzyme kinetics explorer](https://apalania.github.io/InstructionalSimulations/Enzyme-kinetics/), Sept-2026
+
+Machine Learning Demos:
 - [Bias variance tradeoff](https://apalania.github.io/InstructionalSimulations/Bias-Variance/), Sept-2025
 - [RNN architecture progression, from vanilla to BiLSTM](https://apalania.github.io/InstructionalSimulations/RNN-Architecture-Progression/), Sept-2025
 - [Training of neural networks](https://apalania.github.io/InstructionalSimulations/NeuralNetTraining), March-2026
@@ -14,7 +16,9 @@ Demos for the following concepts / topics in Machine Learning are available:
 - [CNN - demo of standard architectures](https://apalania.github.io/InstructionalSimulations/CNNs), August 31, 2026
 - [CNN - live architecture design and training against standard problems](https://apalania.github.io/InstructionalSimulations/CNN-live), August 31, 2026
 
-Suggested Progression:
+### Licence: CC BY-NC-SA
+
+ML - Suggested Progression:
 
 1. [Linear regression and the deduction of physical laws](https://apalania.github.io/InstructionalSimulations/LinearRegression/)
 2. [Bias variance tradeoff](https://apalania.github.io/InstructionalSimulations/Bias-Variance/)
@@ -25,5 +29,5 @@ Suggested Progression:
 7. [CNN - live architecture design and training against standard problems](https://apalania.github.io/InstructionalSimulations/CNN-live)
 8. [RNN architecture progression, from vanilla to BiLSTM](https://apalania.github.io/InstructionalSimulations/RNN-Architecture-Progression/)
    
-Last updated, August 2026.
+Last updated, September 2026.
 
