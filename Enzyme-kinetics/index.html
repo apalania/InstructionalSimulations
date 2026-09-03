@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enzyme Kinetics Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --paper:#EAEFF1;
+    --panel:#FFFFFF;
+    --panel-2:#F4F7F8;
+    --ink:#13232E;
+    --muted:#5C6B75;
+    --faint:#8A97A0;
+    --line:#D9E1E5;
+    --teal:#0F766E;
+    --teal-deep:#0B5A54;
+    --teal-soft:#E4F0EE;
+    --control:#0F766E;
+    --competitive:#D62F45;
+    --noncomp:#DB8500;
+    --uncomp:#7C3AED;
+    --mixed:#2563EB;
+    --warm:#E4572E;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(19,35,46,.04),0 8px 24px rgba(19,35,46,.06);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1320px;margin:0 auto;padding:28px 24px 64px}
+        
+  .banner {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 12px 20px;
+            text-align: center;
+            font-size: 13px;
+            border-bottom: 1px solid #1a252f;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+  .banner p { margin: 0; letter-spacing: 0.3px; }
+
+  /* ---------- Masthead ---------- */
+  .masthead{
+    position:relative;
+    border:1px solid var(--line);
+    background:
+      linear-gradient(180deg,#FFFFFF 0%,#F7FAFA 100%);
+    border-radius:var(--radius);
+    padding:26px 28px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .masthead::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:26px 26px;
+    opacity:.35;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 40%,#000);
+            mask-image:linear-gradient(90deg,transparent,#000 40%,#000);
+    pointer-events:none;
+  }
+  .eyebrow{
+    position:relative;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--teal);font-weight:600;
+    display:flex;align-items:center;gap:10px;
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);
+    box-shadow:0 0 0 4px var(--teal-soft);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .masthead h1{
+    position:relative;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;font-size:clamp(28px,4vw,44px);
+    letter-spacing:-.02em;line-height:1.05;margin:14px 0 8px;
+  }
+  .masthead h1 em{font-style:normal;color:var(--teal)}
+  .masthead p{position:relative;color:var(--muted);max-width:60ch;font-size:15px}
+  .readout{
+    position:relative;margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;
+    font-family:'JetBrains Mono',monospace;font-size:12px;
+  }
+  .chip{
+    background:var(--panel-2);border:1px solid var(--line);
+    border-radius:999px;padding:5px 12px;color:var(--muted);
+  }
+  .chip b{color:var(--ink);font-weight:600}
+
+  /* ---------- Tabs ---------- */
+  .tabs{
+    position:sticky;top:0;z-index:20;
+    display:flex;gap:2px;flex-wrap:wrap;
+    margin:22px 0 20px;padding:6px;
+    background:rgba(255,255,255,.82);backdrop-filter:blur(8px);
+    border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  }
+  .tab-btn{
+    font-family:'Space Grotesk',sans-serif;font-weight:500;font-size:13.5px;
+    color:var(--muted);background:transparent;border:none;cursor:pointer;
+    padding:9px 14px;border-radius:8px;transition:all .18s ease;
+    display:flex;align-items:center;gap:7px;white-space:nowrap;
+  }
+  .tab-btn .idx{font-family:'JetBrains Mono',monospace;font-size:10.5px;
+    color:var(--faint);font-weight:600}
+  .tab-btn:hover{color:var(--ink);background:var(--panel-2)}
+  .tab-btn.active{color:#fff;background:var(--teal)}
+  .tab-btn.active .idx{color:rgba(255,255,255,.7)}
+
+  /* ---------- Panels ---------- */
+  .panel{display:none;animation:fade .3s ease}
+  .panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .panel-head{margin-bottom:18px}
+  .panel-head .kicker{
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--teal);font-weight:600;margin-bottom:6px}
+  .panel-head h2{font-family:'Space Grotesk',sans-serif;font-weight:600;
+    font-size:24px;letter-spacing:-.01em}
+  .panel-head p{color:var(--muted);font-size:14.5px;max-width:70ch;margin-top:4px}
+
+  .grid{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+  .card{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);
+  }
+  .card h3{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;
+    margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+  .card h3 .tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;
+    letter-spacing:.1em;color:var(--teal);background:var(--teal-soft);
+    padding:3px 8px;border-radius:6px;text-transform:uppercase}
+
+  /* ---------- Controls ---------- */
+  .ctrl{margin-bottom:18px}
+  .ctrl:last-child{margin-bottom:0}
+  .ctrl label{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:13px;font-weight:500;margin-bottom:9px}
+  .ctrl label .name{color:var(--ink)}
+  .val{font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:600;
+    color:var(--teal);background:var(--teal-soft);padding:2px 9px;border-radius:6px}
+  .ctrl small{display:block;color:var(--faint);font-size:11.5px;margin-top:7px}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:99px;
+    background:var(--line);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:17px;height:17px;border-radius:50%;
+    background:var(--teal);border:3px solid #fff;box-shadow:0 1px 4px rgba(15,118,110,.4);
+    cursor:pointer;transition:transform .1s}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+  input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;
+    background:var(--teal);border:3px solid #fff;cursor:pointer}
+
+  .segment{display:flex;flex-wrap:wrap;gap:6px}
+  .seg-btn{
+    flex:1;min-width:fit-content;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:500;
+    padding:8px 10px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel);color:var(--muted);cursor:pointer;transition:all .16s;
+    display:flex;align-items:center;gap:7px;justify-content:center}
+  .seg-btn:hover{border-color:var(--teal);color:var(--ink)}
+  .seg-btn.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .seg-btn .swatch{width:9px;height:9px;border-radius:2px;flex:none}
+
+  .radio-list{display:flex;flex-direction:column;gap:2px}
+  .radio-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;
+    cursor:pointer;transition:background .14s;border:1px solid transparent}
+  .radio-row:hover{background:var(--panel-2)}
+  .radio-row.on{background:var(--panel-2);border-color:var(--line)}
+  .radio-row .swatch{width:11px;height:11px;border-radius:3px;flex:none}
+  .radio-row .txt{font-size:13px;font-weight:500}
+  .radio-row .sub{font-size:11.5px;color:var(--faint);font-weight:400}
+  .radio-row input{display:none}
+
+  .plot-toggle{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+  .pt-btn{font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:500;
+    padding:7px 13px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel);color:var(--muted);cursor:pointer;transition:all .16s}
+  .pt-btn:hover{border-color:var(--teal)}
+  .pt-btn.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+  .chart-box{position:relative;width:100%;height:400px}
+
+  /* ---------- Info notes ---------- */
+  .note{border-radius:10px;padding:13px 15px;font-size:13px;line-height:1.55;
+    border:1px solid var(--line);background:var(--panel-2);margin-top:16px}
+  .note.accent{border-left:3px solid var(--teal);background:var(--teal-soft)}
+  .note.formula{font-family:'JetBrains Mono',monospace;font-size:12.5px;
+    background:var(--ink);color:#DCEAE8;border:none}
+  .note.formula .lbl{color:var(--faint);font-size:10px;letter-spacing:.15em;
+    text-transform:uppercase;display:block;margin-bottom:6px}
+  .note h4{font-family:'Space Grotesk',sans-serif;font-size:13px;margin-bottom:5px}
+  .note .diag{display:flex;gap:9px;align-items:baseline;padding:3px 0}
+  .note .diag b{font-weight:600;min-width:104px;display:inline-block}
+
+  .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px}
+  .stat .k{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--faint)}
+  .stat .v{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:600;
+    color:var(--ink);margin-top:3px}
+  .stat .v small{font-size:11px;color:var(--muted);font-weight:400}
+
+  table.cmp{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+  table.cmp th,table.cmp td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line)}
+  table.cmp th{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted);background:var(--panel-2)}
+  table.cmp td:first-child{font-weight:600}
+  table.cmp tr:last-child td{border-bottom:none}
+
+  footer{margin-top:34px;padding-top:22px;border-top:1px solid var(--line);
+    color:var(--faint);font-size:12.5px;text-align:center}
+  footer b{color:var(--muted);font-weight:600}
+
+  @media(max-width:860px){
+    .grid{grid-template-columns:1fr}
+    .chart-box{height:340px}
+    .tabs{position:static}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  }
+</style>
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4F1Q4CY158"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-4F1Q4CY158');
+</script>
+
+</head>
+<body>
+    <!-- BANNER -->
+    <div class="banner">
+        <p>Dr Ashok Palaniappan, Systems Computational Biology Lab, School of Chemical and Biotechnology, SASTRA University</p>
+    </div>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow"><span class="dot"></span>Enzyme kinetics · interactive module</div>
+    <h1>Michaelis–Menten <em>Explorer</em></h1>
+    <p>Adjust parameters and watch the kinetics respond. Diagnostic linear plots make each inhibition and mechanism signature readable at a glance.</p>
+    <div class="readout">
+      <span class="chip"><b>9</b> modules</span>
+      <span class="chip">v = <b>Vmax·[S] / (Km+[S])</b></span>
+      <span class="chip">live <b>Lineweaver–Burk</b> diagnostics</span>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="kinetics"><span class="idx">01</span>Michaelis–Menten</button>
+    <button class="tab-btn" data-tab="inhibition"><span class="idx">02</span>Inhibition</button>
+    <button class="tab-btn" data-tab="revirrev"><span class="idx">03</span>Reversible / Irreversible</button>
+    <button class="tab-btn" data-tab="suicide"><span class="idx">04</span>Suicide Substrate</button>
+    <button class="tab-btn" data-tab="product"><span class="idx">05</span>Product Inhibition</button>
+    <button class="tab-btn" data-tab="coop"><span class="idx">06</span>Cooperativity</button>
+    <button class="tab-btn" data-tab="allosteric"><span class="idx">07</span>Allosteric</button>
+    <button class="tab-btn" data-tab="multi"><span class="idx">08</span>Multi-Substrate</button>
+    <button class="tab-btn" data-tab="mechanism"><span class="idx">09</span>Mechanisms</button>
+  </nav>
+
+  <!-- 01 KINETICS -->
+  <section class="panel active" id="kinetics">
+    <div class="panel-head">
+      <div class="kicker">Fundamentals</div>
+      <h2>Basic Michaelis–Menten kinetics</h2>
+      <p>The rectangular hyperbola relating initial velocity to substrate concentration. Switch to the double-reciprocal plot to see the linear form.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>Parameters <span class="tag">v vs [S]</span></h3>
+        <div class="ctrl">
+          <label><span class="name">Vmax</span><span class="val" id="k_vmax_v">100 µmol/min</span></label>
+          <input type="range" id="k_vmax" min="10" max="200" step="1" value="100">
+          <small>Maximum velocity at saturating substrate.</small>
+        </div>
+        <div class="ctrl">
+          <label><span class="name">Km</span><span class="val" id="k_km_v">5.0 mM</span></label>
+          <input type="range" id="k_km" min="0.5" max="20" step="0.5" value="5">
+          <small>Substrate concentration at ½·Vmax.</small>
+        </div>
+        <div class="plot-toggle" style="margin-top:4px" id="k_toggle">
+          <button class="pt-btn active" data-p="mm">M–M curve</button>
+          <button class="pt-btn" data-p="lb">Lineweaver–Burk</button>
+        </div>
+        <div class="note formula"><span class="lbl">Michaelis–Menten</span>v = (Vmax · [S]) / (Km + [S])</div>
+        <div class="stat-row">
+          <div class="stat"><div class="k">½ Vmax at</div><div class="v" id="k_half">5.0<small> mM</small></div></div>
+          <div class="stat"><div class="k">kcat/Km class</div><div class="v" id="k_eff">—</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Kinetic curve <span class="tag" id="k_plotlabel">hyperbola</span></h3>
+        <div class="chart-box"><canvas id="k_chart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 INHIBITION -->
+  <section class="panel" id="inhibition">
+    <div class="panel-head">
+      <div class="kicker">Reversible inhibition</div>
+      <h2>Inhibition diagnostics</h2>
+      <p>Each inhibition type leaves a distinct fingerprint on the Lineweaver–Burk plot. Lines are drawn analytically and extended across the axes — watch <b>where</b> the control and inhibited lines meet.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>Inhibition type</h3>
+        <div class="radio-list" id="inh_types">
+          <label class="radio-row on"><input type="radio" name="inh" value="competitive" checked>
+            <span class="swatch" style="background:var(--competitive)"></span>
+            <span><span class="txt">Competitive</span><br><span class="sub">Km ↑ · Vmax —</span></span></label>
+          <label class="radio-row"><input type="radio" name="inh" value="noncompetitive">
+            <span class="swatch" style="background:var(--noncomp)"></span>
+            <span><span class="txt">Non-competitive</span><br><span class="sub">Km — · Vmax ↓</span></span></label>
+          <label class="radio-row"><input type="radio" name="inh" value="uncompetitive">
+            <span class="swatch" style="background:var(--uncomp)"></span>
+            <span><span class="txt">Uncompetitive</span><br><span class="sub">Km ↓ · Vmax ↓ (equal)</span></span></label>
+          <label class="radio-row"><input type="radio" name="inh" value="mixedtype">
+            <span class="swatch" style="background:var(--mixed)"></span>
+            <span><span class="txt">Mixed-type</span><br><span class="sub">Km ↑ · Vmax ↓ (unequal)</span></span></label>
+        </div>
+        <div class="ctrl" style="margin-top:18px">
+          <label><span class="name">[I] inhibitor</span><span class="val" id="inh_i_v">2.0 mM</span></label>
+          <input type="range" id="inh_i" min="0" max="10" step="0.1" value="2">
+        </div>
+        <div class="ctrl">
+          <label><span class="name">Ki</span><span class="val" id="inh_ki_v">3.0 mM</span></label>
+          <input type="range" id="inh_ki" min="0.5" max="10" step="0.5" value="3">
+        </div>
+        <div class="plot-toggle" id="inh_toggle">
+          <button class="pt-btn active" data-p="lb">Lineweaver–Burk</button>
+          <button class="pt-btn" data-p="mm">M–M curve</button>
+        </div>
+        <div class="note accent" id="inh_desc"></div>
+      </div>
+      <div class="card">
+        <h3>Diagnostic plot <span class="tag" id="inh_meet"></span></h3>
+        <div class="chart-box"><canvas id="inh_chart"></canvas></div>
+        <div class="note"><div class="diag"><b>◦ Meeting point</b> The ringed marker shows where control &amp; inhibited lines intersect — read which axis it sits on.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 REVERSIBLE vs IRREVERSIBLE -->
+  <section class="panel" id="revirrev">
+    <div class="panel-head">
+      <div class="kicker">Inhibition dynamics</div>
+      <h2>Reversible vs irreversible inhibition</h2>
+      <p>Reversible inhibitors bind in rapid equilibrium — activity is depressed but stable, and recoverable by dilution. Irreversible inhibitors form a covalent bond, so active enzyme is lost over time and dilution cannot restore it.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>Setup</h3>
+        <div class="plot-toggle" id="ri_toggle">
+          <button class="pt-btn active" data-p="time">Activity vs time</button>
+          <button class="pt-btn" data-p="dilute">Recovery on dilution</button>
+        </div>
+        <div class="ctrl">
+          <label><span class="name">[I] inhibitor</span><span class="val" id="ri_i_v">5.0 µM</span></label>
+          <input type="range" id="ri_i" min="0" max="20" step="0.5" value="5">
+        </div>
+        <div class="ctrl">
+          <label><span class="name">Ki / KI (binding)</span><span class="val" id="ri_ki_v">4.0 µM</span></label>
+          <input type="range" id="ri_ki" min="0.5" max="15" step="0.5" value="4">
+        </div>
+        <div class="ctrl">
+          <label><span class="name">kinact (irrev.)</span><span class="val" id="ri_kin_v">0.30 min⁻¹</span></label>
+          <input type="range" id="ri_kin" min="0.02" max="1" step="0.02" value="0.3">
+          <small>Rate of covalent inactivation once bound.</small>
+        </div>
+        <div class="note accent" id="ri_desc"></div>
+      </div>
+      <div class="card">
+        <h3>Response <span class="tag" id="ri_tag">time-course</span></h3>
+        <div class="chart-box"><canvas id="ri_chart"></canvas></div>
+        <div class="stat-row">
+          <div class="stat"><div class="k">Reversible activity</div><div class="v" id="ri_rev">—</div></div>
+          <div class="stat"><div class="k">Irrev. t½ (inactivation)</div><div class="v" id="ri_thalf">—</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 SUICIDE SUBSTRATE -->
+  <section class="panel" id="suicide">
+    <div class="panel-head">
+      <div class="kicker">Mechanism-based inhibition</div>
+      <h2>Suicide substrate inhibition</h2>
+      <p>The enzyme accepts the inhibitor as a substrate and, during catalysis, generates a reactive intermediate that covalently inactivates the very enzyme that made it. The hallmark is <b>saturable</b>, time-dependent inactivation: k<sub>obs</sub> vs [I] is hyperbolic, not linear.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>Parameters</h3>
+        <div class="plot-toggle" id="su_toggle">
+          <button class="pt-btn active" data-p="time">Inactivation vs time</button>
+          <button class="pt-btn" data-p="kobs">k_obs vs [I]</button>
+        </div>
+        <div class="ctrl">
+          <label><span class="name">k<sub>inact</sub></span><span class="val" id="su_kin_v">0.40 min⁻¹</span></label>
+          <input type="range" id="su_kin" min="0.05" max="1.5" step="0.05" value="0.4">
+          <small>Maximal inactivation rate at saturating [I].</small>
+        </div>
+        <div class="ctrl">
+          <label><span class="name">K<sub>I</sub></span><span class="val" id="su_ki_v">6.0 µM</span></label>
+          <input type="range" id="su_ki" min="1" max="20" step="0.5" value="6">
+          <small>[I] giving half-maximal inactivation rate.</small>
+        </div>
+        <div class="ctrl">
+          <label><span class="name">[I] for time-course</span><span class="val" id="su_i_v">8.0 µM</span></label>
+          <input type="range" id="su_i" min="0" max="40" step="1" value="8">
+        </div>
+        <div class="ctrl">
+          <label><span class="name">Partition ratio (k<sub>cat</sub>/k<sub>inact</sub>)</span><span class="val" id="su_pr_v">25</span></label>
+          <input type="range" id="su_pr" min="1" max="200" step="1" value="25">
+          <small>Turnovers before one inactivation event. Lower = more efficient inactivator.</small>
+        </div>
+        <div class="note accent" id="su_desc"></div>
+      </div>
+      <div class="card">
+        <h3>Inactivation <span class="tag" id="su_tag">time-course</span></h3>
+        <div class="chart-box"><canvas id="su_chart"></canvas></div>
+        <div class="stat-row">
+          <div class="stat"><div class="k">k<sub>obs</sub> at this [I]</div><div class="v" id="su_kobs">—</div></div>
+          <div class="stat"><div class="k">Efficiency k<sub>inact</sub>/K<sub>I</sub></div><div class="v" id="su_eff">—</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 PRODUCT INHIBITION -->
+  <section class="panel" id="product">
+    <div class="panel-head">
+      <div class="kicker">Diagnostics</div>
+      <h2>Product inhibition</h2>
+      <p>Accumulating product often re-binds the enzyme. The <em>pattern</em> of product inhibition (competitive / non-competitive / uncompetitive) points back to the underlying multi-substrate mechanism.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>Pattern</h3>
+        <div class="radio-list" id="pr_types">
+          <label class="radio-row on"><input type="radio" name="pr" value="competitive" checked>
+            <span class="swatch" style="background:var(--competitive)"></span>
+            <span><span class="txt">Competitive</span><br><span class="sub">→ Sequential mechanism</span></span></label>
+          <label class="radio-row"><input type="radio" name="pr" value="noncompetitive">
+            <span class="swatch" style="background:var(--noncomp)"></span>
+            <span><span class="txt">Non-competitive</span><br><span class="sub">→ Random binding</span></span></label>
+          <label class="radio-row"><input type="radio" name="pr" value="uncompetitive">
+            <span class="swatch" style="background:var(--uncomp)"></span>
+            <span><span class="txt">Uncompetitive</span><br><span class="sub">→ Ping-pong mechanism</span></span></label>
+        </div>
+        <div class="ctrl" style="margin-top:18px">
+          <label><span class="name">[Product]</span><span class="val" id="pr_p_v">2.0 mM</span></label>
+          <input type="range" id="pr_p" min="0" max="8" step="0.1" value="2">
+        </div>
+        <div class="ctrl">
+          <label><span class="name">Ki (product)</span><span class="val" id="pr_ki_v">2.0 mM</span></label>
+          <input type="range" id="pr_ki" min="0.5" max="10" step="0.5" value="2">
+        </div>
+        <div class="note accent" id="pr_desc"></div>
+      </div>
+      <div class="card">
+        <h3>Effect of product <span class="tag">v vs [S]</span></h3>
+        <div class="chart-box"><canvas id="pr_chart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 COOPERATIVITY -->
+  <section class="panel" id="coop">
+    <div class="panel-head">
+      <div class="kicker">Cooperativity</div>
+      <h2>Hill equation &amp; cooperativity</h2>
+      <p>Cooperative binding turns the hyperbola sigmoidal. The Hill plot linearises the data — its slope <b>is</b> the Hill coefficient n.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>Hill parameters</h3>
+        <div class="ctrl">
+          <label><span class="name">n (Hill coefficient)</span><span class="val" id="co_n_v">1.0</span></label>
+          <input type="range" id="co_n" min="0.5" max="4" step="0.1" value="1">
+          <small>1 = none · &gt;1 positive · &lt;1 negative cooperativity.</small>
+        </div>
+        <div class="ctrl">
+          <label><span class="name">K₀.₅</span><span class="val" id="co_k_v">5.0 mM</span></label>
+          <input type="range" id="co_k" min="1" max="15" step="0.5" value="5">
+        </div>
+        <div class="plot-toggle" id="co_toggle">
+          <button class="pt-btn active" data-p="curve">v/Vmax curve</button>
+          <button class="pt-btn" data-p="hill">Hill plot (log–log)</button>
+        </div>
+        <div class="note formula"><span class="lbl">Hill equation</span>v/Vmax = [S]ⁿ / (K₀.₅ⁿ + [S]ⁿ)</div>
+        <div class="note accent" id="co_desc"></div>
+      </div>
+      <div class="card">
+        <h3>Visualization <span class="tag" id="co_tag">sigmoid</span></h3>
+        <div class="chart-box"><canvas id="co_chart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 ALLOSTERIC -->
+  <section class="panel" id="allosteric">
+    <div class="panel-head">
+      <div class="kicker">Regulation</div>
+      <h2>Allosteric regulation</h2>
+      <p>Effectors bind away from the active site and shift the response curve. <b>K-type</b> modulators change substrate affinity (K₀.₅) and cooperativity; <b>V-type</b> modulators change Vmax. Compare the regulated curve against the unregulated control.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>Effector</h3>
+        <div class="segment" id="al_effector">
+          <button class="seg-btn active" data-e="activator"><span class="swatch" style="background:var(--teal)"></span>Activator</button>
+          <button class="seg-btn" data-e="inhibitor"><span class="swatch" style="background:var(--competitive)"></span>Inhibitor</button>
+        </div>
+        <div class="ctrl" style="margin-top:18px">
+          <label><span class="name">Effector strength</span><span class="val" id="al_str_v">0.5</span></label>
+          <input type="range" id="al_str" min="0" max="1" step="0.05" value="0.5">
+          <small>0 = none · 1 = full modulation.</small>
+        </div>
+        <div class="ctrl">
+          <label><span class="name">Baseline n</span><span class="val" id="al_n_v">2.0</span></label>
+          <input type="range" id="al_n" min="1" max="4" step="0.1" value="2">
+        </div>
+        <div class="ctrl">
+          <label><span class="name">Baseline K₀.₅</span><span class="val" id="al_k_v">6.0 mM</span></label>
+          <input type="range" id="al_k" min="2" max="14" step="0.5" value="6">
+        </div>
+        <div class="segment" id="al_mode" style="margin-top:4px">
+          <button class="seg-btn active" data-m="K">K-type (affinity)</button>
+          <button class="seg-btn" data-m="V">V-type (Vmax)</button>
+        </div>
+        <div class="note accent" id="al_desc"></div>
+      </div>
+      <div class="card">
+        <h3>Regulated response <span class="tag" id="al_tag">K-type</span></h3>
+        <div class="chart-box"><canvas id="al_chart"></canvas></div>
+        <div class="stat-row">
+          <div class="stat"><div class="k">Effective K₀.₅</div><div class="v" id="al_keff">—</div></div>
+          <div class="stat"><div class="k">Effective n</div><div class="v" id="al_neff">—</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 MULTI-SUBSTRATE -->
+  <section class="panel" id="multi">
+    <div class="panel-head">
+      <div class="kicker">Bisubstrate kinetics</div>
+      <h2>Multi-substrate enzyme kinetics</h2>
+      <p>With two substrates, the family of double-reciprocal lines (varying the fixed substrate [B]) reveals the mechanism: <b>sequential</b> mechanisms give intersecting lines, <b>ping-pong</b> gives parallel lines.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>Mechanism</h3>
+        <div class="radio-list" id="ms_types">
+          <label class="radio-row on"><input type="radio" name="ms" value="sequential" checked>
+            <span class="swatch" style="background:var(--mixed)"></span>
+            <span><span class="txt">Sequential (ternary)</span><br><span class="sub">Intersecting lines</span></span></label>
+          <label class="radio-row"><input type="radio" name="ms" value="pingpong">
+            <span class="swatch" style="background:var(--uncomp)"></span>
+            <span><span class="txt">Ping-pong</span><br><span class="sub">Parallel lines</span></span></label>
+        </div>
+        <div class="ctrl" style="margin-top:18px">
+          <label><span class="name">Km,A</span><span class="val" id="ms_kma_v">4.0 mM</span></label>
+          <input type="range" id="ms_kma" min="1" max="12" step="0.5" value="4">
+        </div>
+        <div class="ctrl">
+          <label><span class="name">Km,B</span><span class="val" id="ms_kmb_v">3.0 mM</span></label>
+          <input type="range" id="ms_kmb" min="1" max="12" step="0.5" value="3">
+        </div>
+        <div class="note accent" id="ms_desc"></div>
+        <div class="note"><div class="diag"><b>Read the plot</b> Vary [B] (the coloured lines). Intersecting to the left of the vertical axis ⇒ sequential. Parallel, never meeting ⇒ ping-pong.</div></div>
+      </div>
+      <div class="card">
+        <h3>Primary plot <span class="tag">1/v vs 1/[A]</span></h3>
+        <div class="chart-box"><canvas id="ms_chart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 MECHANISMS -->
+  <section class="panel" id="mechanism">
+    <div class="panel-head">
+      <div class="kicker">Overview</div>
+      <h2>Mechanistic variations</h2>
+      <p>A side-by-side reference for the three canonical mechanisms, with representative kinetic signatures.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>Mechanism</h3>
+        <div class="radio-list" id="me_types">
+          <label class="radio-row on"><input type="radio" name="me" value="simple" checked>
+            <span class="swatch" style="background:var(--teal)"></span>
+            <span><span class="txt">Simple</span><br><span class="sub">E + S ⇌ ES → E + P</span></span></label>
+          <label class="radio-row"><input type="radio" name="me" value="sequential">
+            <span class="swatch" style="background:var(--mixed)"></span>
+            <span><span class="txt">Sequential</span><br><span class="sub">Ordered / random</span></span></label>
+          <label class="radio-row"><input type="radio" name="me" value="pingpong">
+            <span class="swatch" style="background:var(--uncomp)"></span>
+            <span><span class="txt">Ping-pong</span><br><span class="sub">Double displacement</span></span></label>
+        </div>
+        <div class="note formula" style="margin-top:18px"><span class="lbl">Rate equation</span><span id="me_rate">v = (Vmax · [S]) / (Km + [S])</span></div>
+        <div class="note accent" id="me_desc"></div>
+      </div>
+      <div class="card">
+        <h3>Signature <span class="tag" id="me_tag">v vs [S]</span></h3>
+        <div class="chart-box"><canvas id="me_chart"></canvas></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <h3>Comparison</h3>
+      <table class="cmp">
+        <thead><tr><th>Property</th><th>Simple</th><th>Sequential</th><th>Ping-pong</th></tr></thead>
+        <tbody>
+          <tr><td>L–B pattern</td><td>Single line</td><td>Intersecting</td><td>Parallel</td></tr>
+          <tr><td>Ternary complex</td><td>—</td><td>Yes (EAB)</td><td>No</td></tr>
+          <tr><td>Covalent E intermediate</td><td>No</td><td>No</td><td>Yes (E′)</td></tr>
+          <tr><td>Examples</td><td>Most enzymes</td><td>Dehydrogenases</td><td>Transaminases</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <b>Enzyme Kinetics Explorer</b> — a self-contained teaching instrument. Open in any browser; no install required.
+  </footer>
+</div>
+
+<script>
+/* ============ Shared setup ============ */
+const CSS = getComputedStyle(document.documentElement);
+const C = {
+  ink:'#13232E', muted:'#5C6B75', line:'#D9E1E5',
+  teal:'#0F766E', competitive:'#D62F45', noncomp:'#DB8500',
+  uncomp:'#7C3AED', mixed:'#2563EB', warm:'#E4572E'
+};
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.color = C.muted;
+const charts = {};
+
+function rgba(hex,a){const n=parseInt(hex.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;}
+
+// grid that draws a bold dark line exactly at zero — key for reading intercepts
+function zeroGrid(){
+  return {
+    color:(c)=> c.tick.value===0 ? 'rgba(19,35,46,.75)' : 'rgba(19,35,46,.07)',
+    lineWidth:(c)=> c.tick.value===0 ? 1.6 : 1
+  };
+}
+function axis(title,opts={}){
+  return Object.assign({
+    title:{display:true,text:title,font:{size:12,weight:'600',family:"'JetBrains Mono'"},color:C.muted},
+    grid:zeroGrid(),
+    ticks:{font:{family:"'JetBrains Mono'",size:10.5},maxTicksLimit:8}
+  },opts);
+}
+function baseOpts(xt,yt,xopt={},yopt={}){
+  return {
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'nearest',intersect:false},
+    plugins:{
+      legend:{labels:{font:{family:"'Inter'",size:12},usePointStyle:true,pointStyleWidth:8,boxHeight:6,
+        filter:(it)=>!it.text.startsWith('__')}},
+      tooltip:{backgroundColor:C.ink,titleFont:{family:"'JetBrains Mono'"},bodyFont:{family:"'JetBrains Mono'"},
+        padding:10,cornerRadius:8,displayColors:false}
+    },
+    scales:{x:axis(xt,xopt),y:axis(yt,yopt)}
+  };
+}
+function line(data,color,label,opts={}){
+  return Object.assign({label,data,borderColor:color,backgroundColor:rgba(color,.08),
+    showLine:true,fill:false,tension:opts.tension??0,pointRadius:opts.pointRadius??0,
+    borderWidth:opts.borderWidth??2.4,borderDash:opts.dash||[]},opts.extra||{});
+}
+function draw(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),cfg);}
+
+/* ============ Kinetics math ============ */
+const mm=(s,vmax,km)=> (vmax*s)/(km+s);
+const hill=(s,vmax,k,n)=> (vmax*Math.pow(s,n))/(Math.pow(k,n)+Math.pow(s,n));
+
+// apparent params for reversible inhibition
+function appParams(vmax,km,i,ki,type){
+  const f=1+i/ki;
+  if(type==='competitive')     return {vmax,          km:km*f};
+  if(type==='noncompetitive')  return {vmax:vmax/f,   km};
+  if(type==='uncompetitive')   return {vmax:vmax/f,   km:km/f};
+  if(type==='mixedtype'){const f2=1+i/(1.5*ki); return {vmax:vmax/f2, km:km*f};}
+  return {vmax,km};
+}
+
+/* ============ Tabs ============ */
+const RENDER={kinetics:renderKinetics,inhibition:renderInhibition,revirrev:renderRI,
+  suicide:renderSuicide,product:renderProduct,coop:renderCoop,allosteric:renderAllo,
+  multi:renderMulti,mechanism:renderMech};
+document.getElementById('tabs').addEventListener('click',e=>{
+  const b=e.target.closest('.tab-btn'); if(!b)return;
+  document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const id=b.dataset.tab; document.getElementById(id).classList.add('active');
+  setTimeout(()=>RENDER[id]&&RENDER[id](),40);
+});
+function bindPlotToggle(wrapId,cb){
+  const w=document.getElementById(wrapId);
+  w.addEventListener('click',e=>{const b=e.target.closest('.pt-btn');if(!b)return;
+    w.querySelectorAll('.pt-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');cb(b.dataset.p);});
+}
+function bindSeg(wrapId,cb){
+  const w=document.getElementById(wrapId);
+  w.addEventListener('click',e=>{const b=e.target.closest('.seg-btn');if(!b)return;
+    w.querySelectorAll('.seg-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');cb(b.dataset.e||b.dataset.m);});
+}
+function markRadio(name){
+  document.querySelectorAll(`input[name="${name}"]`).forEach(r=>{
+    r.closest('.radio-row').classList.toggle('on',r.checked);});
+}
+
+/* ============ 01 Kinetics ============ */
+let kPlot='mm';
+function renderKinetics(){
+  const vmax=+val('k_vmax'),km=+val('k_km');
+  set('k_vmax_v',vmax+' µmol/min'); set('k_km_v',km.toFixed(1)+' mM');
+  set('k_half',km.toFixed(1)); 
+  const eff=vmax/km; set('k_eff',eff>15?'high':eff>6?'moderate':'low');
+  set('k_plotlabel',kPlot==='mm'?'hyperbola':'double-reciprocal');
+  if(kPlot==='mm'){
+    const d=[];for(let s=0;s<=30;s+=0.4)d.push({x:s,y:mm(s,vmax,km)});
+    draw('k_chart',{type:'scatter',data:{datasets:[line(d,C.teal,'v = f([S])',{tension:.4})]},
+      options:baseOpts('[S]  (mM)','v  (µmol/min)',{min:0},{min:0})});
+  }else{
+    const slope=km/vmax,b=1/vmax;
+    const xmin=-1/km*1.6, xmax=0.6;
+    const d=[{x:xmin,y:slope*xmin+b},{x:xmax,y:slope*xmax+b}];
+    const yint=[{x:0,y:b}], xint=[{x:-1/km,y:0}];
+    draw('k_chart',{type:'scatter',data:{datasets:[
+      line(d,C.teal,'1/v = f(1/[S])'),
+      {label:'__yint',data:yint,backgroundColor:C.teal,pointRadius:5,pointStyle:'rectRot'},
+      {label:'__xint',data:xint,backgroundColor:C.warm,pointRadius:5,pointStyle:'rectRot'}
+    ]},options:baseOpts('1/[S]  (mM⁻¹)','1/v  (min/µmol)')});
+  }
+}
+
+/* ============ 02 Inhibition ============ */
+let inhPlot='lb';
+const INH_COLOR={competitive:C.competitive,noncompetitive:C.noncomp,uncompetitive:C.uncomp,mixedtype:C.mixed};
+const INH_TEXT={
+  competitive:['Competitive','Inhibitor competes for the active site. Km rises, Vmax is unchanged — the two lines share a <b>y-intercept</b>, meeting on the vertical axis.'],
+  noncompetitive:['Non-competitive','Inhibitor binds E and ES equally. Vmax falls, Km is unchanged — the lines share an <b>x-intercept</b>, meeting on the horizontal axis (left of origin).'],
+  uncompetitive:['Uncompetitive','Inhibitor binds only ES. Km and Vmax fall by the same factor, so the slope is unchanged — the lines are <b>parallel</b> and never meet.'],
+  mixedtype:['Mixed-type','Inhibitor binds E and ES with different affinities. Both change unequally — the lines meet <b>off both axes</b>, in the upper-left quadrant.']
+};
+function renderInhibition(){
+  const vmax=100,km=5;
+  const i=+val('inh_i'),ki=+val('inh_ki');
+  const type=document.querySelector('input[name=inh]:checked').value;
+  markRadio('inh');
+  set('inh_i_v',i.toFixed(1)+' mM'); set('inh_ki_v',ki.toFixed(1)+' mM');
+  const col=INH_COLOR[type], [name,desc]=INH_TEXT[type];
+  document.getElementById('inh_desc').innerHTML=`<h4 style="color:${col}">${name}</h4>${desc}`;
+  const p=appParams(vmax,km,i,ki,type);
+
+  if(inhPlot==='mm'){
+    set('inh_meet','v vs [S]');
+    const d0=[],d1=[];for(let s=0;s<=30;s+=0.4){d0.push({x:s,y:mm(s,vmax,km)});d1.push({x:s,y:mm(s,p.vmax,p.km)});}
+    draw('inh_chart',{type:'scatter',data:{datasets:[
+      line(d0,C.teal,'No inhibitor',{tension:.4}),
+      line(d1,col,`[I] = ${i.toFixed(1)} mM`,{tension:.4})
+    ]},options:baseOpts('[S]  (mM)','v  (µmol/min)',{min:0},{min:0})});
+    return;
+  }
+  // Lineweaver-Burk analytic lines, extended across axes
+  const m0=km/vmax,b0=1/vmax, m1=p.km/p.vmax,b1=1/p.vmax;
+  const xmin=-0.5,xmax=0.6;
+  const L0=[{x:xmin,y:m0*xmin+b0},{x:xmax,y:m0*xmax+b0}];
+  const L1=[{x:xmin,y:m1*xmin+b1},{x:xmax,y:m1*xmax+b1}];
+  const ds=[ line(L0,C.teal,'No inhibitor'), line(L1,col,`[I] = ${i.toFixed(1)} mM`) ];
+  // meeting-point marker
+  let meet='parallel';
+  if(Math.abs(m0-m1)>1e-9){
+    const xs=(b1-b0)/(m0-m1), ys=m0*xs+b0;
+    ds.push({label:'__meet',data:[{x:xs,y:ys}],pointRadius:7,pointStyle:'circle',
+      backgroundColor:'transparent',borderColor:C.ink,borderWidth:2});
+    ds.push({label:'__meet2',data:[{x:xs,y:ys}],pointRadius:2.5,backgroundColor:C.ink});
+    meet = Math.abs(xs)<1e-6?'meet on y-axis':Math.abs(ys)<1e-6?'meet on x-axis':'meet off-axis';
+  }
+  set('inh_meet',meet);
+  draw('inh_chart',{type:'scatter',data:{datasets:ds},
+    options:baseOpts('1/[S]  (mM⁻¹)','1/v  (min/µmol)',{min:xmin,max:xmax},{suggestedMin:-0.004})});
+}
+
+/* ============ 03 Reversible vs Irreversible ============ */
+let riPlot='time';
+function renderRI(){
+  const i=+val('ri_i'),ki=+val('ri_ki'),kin=+val('ri_kin');
+  set('ri_i_v',i.toFixed(1)+' µM'); set('ri_ki_v',ki.toFixed(1)+' µM'); set('ri_kin_v',kin.toFixed(2)+' min⁻¹');
+  const frac=1/(1+i/ki);                     // reversible fractional activity (equilibrium)
+  const kobs=kin*(i/(ki+i));                 // irreversible pseudo-first-order rate
+  set('ri_rev',(frac*100).toFixed(0)+'%');
+  set('ri_thalf', kobs>0? (Math.log(2)/kobs).toFixed(1)+' min':'∞');
+  set('ri_tag', riPlot==='time'?'time-course':'dilution');
+
+  if(riPlot==='time'){
+    const rev=[],irr=[];
+    for(let t=0;t<=30;t+=0.5){
+      rev.push({x:t,y:frac*100});                 // reversible: constant depressed activity
+      irr.push({x:t,y:100*Math.exp(-kobs*t)});    // irreversible: exponential loss
+    }
+    document.getElementById('ri_desc').innerHTML=
+      `<h4>Activity over time</h4>Reversible inhibition holds activity <b>steady</b> at ${(frac*100).toFixed(0)}% (rapid equilibrium). Irreversible inhibition drives activity toward <b>zero</b> as covalent adducts accumulate.`;
+    draw('ri_chart',{type:'scatter',data:{datasets:[
+      line(rev,C.teal,'Reversible',{tension:.2}),
+      line(irr,C.competitive,'Irreversible',{tension:.2})
+    ]},options:baseOpts('time  (min)','% activity remaining',{min:0},{min:0,max:105})});
+  }else{
+    // Recovery on dilution: at t, dilute 100x. Reversible re-equilibrates -> ~full activity.
+    // Irreversible: already-inactivated fraction stays dead.
+    const cats=['Before','After 100× dilution'];
+    const revRecovered=100/(1+(i/100)/ki);      // [I] drops 100× → re-equilibrates high
+    const irrDead=100*Math.exp(-kobs*10);       // 10 min exposure, then dilute; stays inactivated
+    document.getElementById('ri_desc').innerHTML=
+      `<h4>The dilution test</h4>Diluting 100× drops [I] below Ki. The <b>reversible</b> enzyme lets go of inhibitor and recovers to ≈${revRecovered.toFixed(0)}%. The <b>irreversible</b> enzyme stays inactivated — the bond doesn't care about concentration.`;
+    draw('ri_chart',{type:'bar',
+      data:{labels:cats,datasets:[
+        {label:'Reversible',data:[frac*100,revRecovered],backgroundColor:rgba(C.teal,.85),borderRadius:6,maxBarThickness:60},
+        {label:'Irreversible',data:[irrDead,irrDead],backgroundColor:rgba(C.competitive,.85),borderRadius:6,maxBarThickness:60}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{usePointStyle:true,pointStyleWidth:8,boxHeight:6}},
+          tooltip:{backgroundColor:C.ink,padding:10,cornerRadius:8}},
+        scales:{x:{grid:{display:false},ticks:{font:{family:"'JetBrains Mono'"}}},
+          y:axis('% activity remaining',{min:0,max:105})}}});
+  }
+}
+
+/* ============ 04 Suicide substrate ============ */
+let suPlot='time';
+function renderSuicide(){
+  const kin=+val('su_kin'),ki=+val('su_ki'),i=+val('su_i'),pr=+val('su_pr');
+  set('su_kin_v',kin.toFixed(2)+' min⁻¹'); set('su_ki_v',ki.toFixed(1)+' µM');
+  set('su_i_v',i.toFixed(1)+' µM'); set('su_pr_v',pr);
+  const kobs=kin*(i/(ki+i));
+  set('su_kobs',kobs.toFixed(3)+' min⁻¹');
+  set('su_eff',(kin/ki).toFixed(3));
+  set('su_tag',suPlot==='time'?'time-course':'saturation');
+
+  if(suPlot==='time'){
+    const conc=[i*0.4,i,i*2.2].filter(c=>c>0);
+    const cols=[C.uncomp,C.teal,C.warm];
+    const ds=conc.map((c,idx)=>{const k=kin*(c/(ki+c));const d=[];
+      for(let t=0;t<=30;t+=0.5)d.push({x:t,y:100*Math.exp(-k*t)});
+      return line(d,cols[idx%3],`[I] = ${c.toFixed(1)} µM`,{tension:.2});});
+    document.getElementById('su_desc').innerHTML=
+      `<h4>Time- &amp; concentration-dependent</h4>Activity decays exponentially, faster at higher [I]. A partition ratio of <b>${pr}</b> means ~${pr} catalytic turnovers occur per inactivation event.`;
+    draw('su_chart',{type:'scatter',data:{datasets:ds},
+      options:baseOpts('time  (min)','% active enzyme',{min:0},{min:0,max:105})});
+  }else{
+    // kobs vs [I]: saturating (suicide) vs linear (simple affinity label)
+    const sat=[],lin=[];const slope=kin/ki;
+    for(let c=0;c<=40;c+=0.5){sat.push({x:c,y:kin*(c/(ki+c))});lin.push({x:c,y:slope*c});}
+    document.getElementById('su_desc').innerHTML=
+      `<h4>The saturation signature</h4>k<sub>obs</sub> rises <b>hyperbolically</b> to a plateau at k<sub>inact</sub> — evidence the inhibitor must first bind and be processed. A simple affinity label would rise <b>linearly</b> instead.`;
+    draw('su_chart',{type:'scatter',data:{datasets:[
+      line(sat,C.teal,'Suicide substrate (saturable)',{tension:.35}),
+      line(lin,C.faint||'#8A97A0','Affinity label (linear)',{dash:[6,5],borderWidth:1.8,extra:{borderColor:'#9AA7AF'}})
+    ]},options:baseOpts('[I]  (µM)','k_obs  (min⁻¹)',{min:0},{min:0,suggestedMax:kin*1.1})});
+  }
+}
+
+/* ============ 05 Product inhibition ============ */
+const PR_TEXT={
+  competitive:['Competitive product inhibition','Product competes with substrate at the same site → consistent with an <b>ordered sequential</b> mechanism where product is released last.'],
+  noncompetitive:['Non-competitive product inhibition','Product binds regardless of substrate → consistent with a <b>random</b> binding order.'],
+  uncompetitive:['Uncompetitive product inhibition','Product binds only after substrate → classic signature of a <b>ping-pong</b> mechanism.']
+};
+function renderProduct(){
+  const vmax=100,km=5,p=+val('pr_p'),ki=+val('pr_ki');
+  const type=document.querySelector('input[name=pr]:checked').value; markRadio('pr');
+  set('pr_p_v',p.toFixed(1)+' mM'); set('pr_ki_v',ki.toFixed(1)+' mM');
+  const col=INH_COLOR[type]; const [n,d]=PR_TEXT[type];
+  document.getElementById('pr_desc').innerHTML=`<h4 style="color:${col}">${n}</h4>${d}`;
+  const ap=appParams(vmax,km,p,ki,type);
+  const d0=[],d1=[];for(let s=0;s<=25;s+=0.35){d0.push({x:s,y:mm(s,vmax,km)});d1.push({x:s,y:mm(s,ap.vmax,ap.km)});}
+  draw('pr_chart',{type:'scatter',data:{datasets:[
+    line(d0,C.teal,'No product',{tension:.4}),
+    line(d1,col,`[P] = ${p.toFixed(1)} mM`,{tension:.4})
+  ]},options:baseOpts('[S]  (mM)','v  (µmol/min)',{min:0},{min:0})});
+}
+
+/* ============ 06 Cooperativity ============ */
+let coPlot='curve';
+function renderCoop(){
+  const vmax=100,n=+val('co_n'),k=+val('co_k');
+  set('co_n_v',n.toFixed(1)); set('co_k_v',k.toFixed(1)+' mM');
+  set('co_tag',coPlot==='curve'?'sigmoid':'log–log');
+  let msg;
+  if(n<0.95)msg=['#B45309','Negative cooperativity','Each binding event lowers affinity for the next.'];
+  else if(n<=1.05)msg=[C.muted,'No cooperativity','Standard Michaelis–Menten hyperbola.'];
+  else if(n<2)msg=[C.teal,'Moderate positive cooperativity','A gently sigmoidal response.'];
+  else if(n<3)msg=[C.teal,'Strong positive cooperativity','Sharp, switch-like activation.'];
+  else msg=[C.teal,'Very strong cooperativity','Haemoglobin-like (n ≈ 2.8).'];
+  document.getElementById('co_desc').innerHTML=`<h4 style="color:${msg[0]}">${msg[1]}</h4>${msg[2]}`;
+
+  if(coPlot==='curve'){
+    const d=[];for(let s=0;s<=20;s+=0.25)d.push({x:s,y:hill(s,vmax,k,n)});
+    draw('co_chart',{type:'scatter',data:{datasets:[line(d,C.uncomp,`Hill n=${n.toFixed(1)}`,{tension:.4})]},
+      options:baseOpts('[S]  (mM)','v/Vmax  (%)',{min:0},{min:0,max:100})});
+  }else{
+    const d=[];for(let s=0.15;s<=20;s+=0.4){const v=hill(s,vmax,k,n);
+      if(v>0.5&&v<vmax*0.995)d.push({x:Math.log10(s),y:Math.log10(v/(vmax-v))});}
+    draw('co_chart',{type:'scatter',data:{datasets:[
+      line(d,C.uncomp,`Hill plot · slope ≈ n = ${n.toFixed(1)}`,{pointRadius:2.5})
+    ]},options:baseOpts('log[S]','log( v / (Vmax−v) )')});
+  }
+}
+
+/* ============ 07 Allosteric ============ */
+let alEffector='activator', alMode='K';
+function renderAllo(){
+  const vmax=100,str=+val('al_str'),n0=+val('al_n'),k0=+val('al_k');
+  set('al_str_v',str.toFixed(2)); set('al_n_v',n0.toFixed(1)); set('al_k_v',k0.toFixed(1)+' mM');
+  set('al_tag',alMode==='K'?'K-type':'V-type');
+  const activ = alEffector==='activator';
+  let kEff=k0,nEff=n0,vEff=vmax;
+  if(alMode==='K'){
+    // activator lowers K0.5 and pushes n toward 1 (less cooperative, easier);
+    // inhibitor raises K0.5 and increases n (more switch-like, harder)
+    kEff = activ ? k0*(1-0.6*str) : k0*(1+1.2*str);
+    nEff = activ ? Math.max(1, n0-(n0-1)*str) : n0+1.5*str;
+  }else{
+    vEff = activ ? vmax*(1+0.6*str) : vmax*(1-0.6*str);
+  }
+  set('al_keff',kEff.toFixed(1)+' mM'); set('al_neff',nEff.toFixed(1));
+  const col = activ?C.teal:C.competitive;
+  document.getElementById('al_desc').innerHTML= alMode==='K'
+    ? `<h4 style="color:${col}">K-type ${activ?'activator':'inhibitor'}</h4>Shifts K₀.₅ ${activ?'left (higher affinity)':'right (lower affinity)'} and ${activ?'reduces':'increases'} cooperativity. Vmax is unchanged.`
+    : `<h4 style="color:${col}">V-type ${activ?'activator':'inhibitor'}</h4>Scales Vmax ${activ?'up':'down'} while leaving K₀.₅ and cooperativity essentially fixed.`;
+
+  const d0=[],d1=[];
+  for(let s=0;s<=20;s+=0.25){d0.push({x:s,y:hill(s,vmax,k0,n0)});d1.push({x:s,y:hill(s,vEff,kEff,nEff)});}
+  draw('al_chart',{type:'scatter',data:{datasets:[
+    line(d0,C.muted,'Unregulated',{tension:.4,dash:[6,5],borderWidth:1.8}),
+    line(d1,col,activ?'+ Activator':'+ Inhibitor',{tension:.4})
+  ]},options:baseOpts('[S]  (mM)','v  (µmol/min)',{min:0},{min:0,max:170})});
+}
+
+/* ============ 08 Multi-substrate ============ */
+function renderMulti(){
+  const vmax=100;
+  const type=document.querySelector('input[name=ms]:checked').value; markRadio('ms');
+  const kmA=+val('ms_kma'),kmB=+val('ms_kmb');
+  set('ms_kma_v',kmA.toFixed(1)+' mM'); set('ms_kmb_v',kmB.toFixed(1)+' mM');
+  const Bset=[1,2,4,10]; const cols=[C.mixed,C.teal,C.noncomp,C.competitive];
+  const kiA=kmA; // constant for ordered sequential
+  const xmin=-0.35,xmax=0.6;
+  const ds=Bset.map((B,idx)=>{
+    let slope,inter;
+    if(type==='sequential'){
+      // 1/v = (1/Vmax)[1+KmB/B] + (1/Vmax)[KmA + KiA*KmB/B]*(1/A)
+      inter=(1/vmax)*(1+kmB/B);
+      slope=(1/vmax)*(kmA + kiA*kmB/B);
+    }else{ // ping-pong: slope constant (KmA/Vmax), intercept varies with B
+      slope=kmA/vmax;
+      inter=(1/vmax)*(1+kmB/B);
+    }
+    const d=[{x:xmin,y:slope*xmin+inter},{x:xmax,y:slope*xmax+inter}];
+    return line(d,cols[idx],`[B] = ${B} mM`);
+  });
+  document.getElementById('ms_desc').innerHTML= type==='sequential'
+    ? `<h4 style="color:${C.mixed}">Sequential mechanism</h4>Both substrates bind before any product leaves (ternary complex). Slope <b>and</b> intercept change with [B], so the lines <b>intersect</b> — here to the left of the vertical axis.`
+    : `<h4 style="color:${C.uncomp}">Ping-pong mechanism</h4>First product leaves before the second substrate binds. The slope (Km,A/Vmax) is independent of [B], so the lines are <b>parallel</b>.`;
+  draw('ms_chart',{type:'scatter',data:{datasets:ds},
+    options:baseOpts('1/[A]  (mM⁻¹)','1/v  (min/µmol)',{min:xmin,max:xmax},{suggestedMin:-0.002})});
+}
+
+/* ============ 09 Mechanisms ============ */
+const ME={
+  simple:{rate:'v = (Vmax · [S]) / (Km + [S])',
+    desc:`<h4 style="color:${C.teal}">Simple Michaelis–Menten</h4>One substrate, one active site. A single hyperbola / single L–B line.`},
+  sequential:{rate:'v = Vmax[A][B] / (KmA[B] + KmB[A] + [A][B] + KiAKmB)',
+    desc:`<h4 style="color:${C.mixed}">Sequential</h4>Ternary complex EAB forms before catalysis. Double-reciprocal lines intersect.`},
+  pingpong:{rate:'v = Vmax[A][B] / (KmA[B] + KmB[A] + [A][B])',
+    desc:`<h4 style="color:${C.uncomp}">Ping-pong (double displacement)</h4>A covalent E′ intermediate carries part of the substrate; L–B lines run parallel.`}
+};
+function renderMech(){
+  const type=document.querySelector('input[name=me]:checked').value; markRadio('me');
+  document.getElementById('me_rate').textContent=ME[type].rate;
+  document.getElementById('me_desc').innerHTML=ME[type].desc;
+  const vmax=100,km=5;
+  if(type==='simple'){
+    set('me_tag','v vs [S]');
+    const d=[];for(let s=0;s<=25;s+=0.35)d.push({x:s,y:mm(s,vmax,km)});
+    draw('me_chart',{type:'scatter',data:{datasets:[line(d,C.teal,'v = f([S])',{tension:.4})]},
+      options:baseOpts('[S]  (mM)','v  (µmol/min)',{min:0},{min:0})});
+  }else{
+    set('me_tag','1/v vs 1/[A]');
+    const Bset=[1,2,5,10],cols=[C.mixed,C.teal,C.noncomp,C.competitive];
+    const xmin=-0.3,xmax=0.6;
+    const ds=Bset.map((B,idx)=>{
+      let slope,inter;
+      if(type==='sequential'){inter=(1/vmax)*(1+3/B);slope=(1/vmax)*(4+4*3/B);}
+      else{slope=4/vmax;inter=(1/vmax)*(1+3/B);}
+      const d=[{x:xmin,y:slope*xmin+inter},{x:xmax,y:slope*xmax+inter}];
+      return line(d,cols[idx],`[B] = ${B} mM`);
+    });
+    draw('me_chart',{type:'scatter',data:{datasets:ds},
+      options:baseOpts('1/[A]  (mM⁻¹)','1/v  (min/µmol)',{min:xmin,max:xmax},{suggestedMin:-0.002})});
+  }
+}
+
+/* ============ helpers + wiring ============ */
+function val(id){return document.getElementById(id).value;}
+function set(id,t){const e=document.getElementById(id);if(e)e.innerHTML=t;}
+function on(id,fn){const e=document.getElementById(id);if(e)e.addEventListener('input',fn);}
+
+// kinetics
+['k_vmax','k_km'].forEach(id=>on(id,renderKinetics));
+bindPlotToggle('k_toggle',p=>{kPlot=p;renderKinetics();});
+// inhibition
+['inh_i','inh_ki'].forEach(id=>on(id,renderInhibition));
+document.getElementById('inh_types').addEventListener('change',renderInhibition);
+bindPlotToggle('inh_toggle',p=>{inhPlot=p;renderInhibition();});
+// rev/irrev
+['ri_i','ri_ki','ri_kin'].forEach(id=>on(id,renderRI));
+bindPlotToggle('ri_toggle',p=>{riPlot=p;renderRI();});
+// suicide
+['su_kin','su_ki','su_i','su_pr'].forEach(id=>on(id,renderSuicide));
+bindPlotToggle('su_toggle',p=>{suPlot=p;renderSuicide();});
+// product
+['pr_p','pr_ki'].forEach(id=>on(id,renderProduct));
+document.getElementById('pr_types').addEventListener('change',renderProduct);
+// coop
+['co_n','co_k'].forEach(id=>on(id,renderCoop));
+bindPlotToggle('co_toggle',p=>{coPlot=p;renderCoop();});
+// allosteric
+['al_str','al_n','al_k'].forEach(id=>on(id,renderAllo));
+bindSeg('al_effector',e=>{alEffector=e;renderAllo();});
+bindSeg('al_mode',m=>{alMode=m;renderAllo();});
+// multi
+['ms_kma','ms_kmb'].forEach(id=>on(id,renderMulti));
+document.getElementById('ms_types').addEventListener('change',renderMulti);
+// mechanism
+document.getElementById('me_types').addEventListener('change',renderMech);
+
+window.addEventListener('load',()=>{
+  renderKinetics();renderInhibition();renderRI();renderSuicide();renderProduct();
+  renderCoop();renderAllo();renderMulti();renderMech();
+});
+</script>
+</body>
+</html>
